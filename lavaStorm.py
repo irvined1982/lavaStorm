@@ -59,6 +59,6 @@ for i in xrange(args.num_jobs):
 		command.append( '-P' )
 		command.append( r.choice( args.project ) )
 
-	command.append( 'mpirun -n %d ./consumeResources.py %d %d' % (num_cores, mem_size, job_runtime ) )
+	command.append( 'mpirun -n %d ./consumeResources.py %d --memory %d -n -c' % (num_cores, job_runtime, mem_size ) )
 	subprocess.call(command)
 
