@@ -38,7 +38,10 @@ r=Random()
 
 # For each job...
 for i in xrange(args.num_jobs):
-	command=['bsub']
+	# Define base bsub command in command_str
+	command_str='bsub'
+	# Split command_str into list
+	command=command_str.split()
 	# Pick a random number of cores to use
 	num_cores=r.randint( args.min_cores, args.max_cores )
 	command.append( '-n' )
