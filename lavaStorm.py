@@ -24,6 +24,7 @@ import subprocess
 from random import Random
 parser = argparse.ArgumentParser(description='Flood OpenLava with some jobs')
 parser.add_argument('num_jobs', type=int)
+parser.add_argument('--bsub_command', type=str,default='bsub')
 parser.add_argument('--min_runtime', type=int, default=80)
 parser.add_argument('--max_runtime', type=int, default=160)
 parser.add_argument('--queue',action='append')
@@ -39,7 +40,7 @@ r=Random()
 # For each job...
 for i in xrange(args.num_jobs):
 	# Define base bsub command in command_str
-	command_str='bsub'
+	command_str=args.bsub_command
 	# Split command_str into list
 	command=command_str.split()
 	# Pick a random number of cores to use
