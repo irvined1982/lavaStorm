@@ -21,6 +21,7 @@ import sys
 import subprocess
 import time
 import argparse
+import tempfile
 from mpi4py import MPI
 from itertools import combinations
 from array import array
@@ -33,6 +34,10 @@ parser.add_argument("-n", "--network", action="store_true", default=False, help=
 parser.add_argument("-N", "--network_iterations", type=int, default=100, help="Number if iterations of the network test")
 parser.add_argument("-c", "--compute", action="store_true", default=False, help="Compute random numbers")
 parser.add_argument("-m", "--memory", type=int, default=100, help="Megabytes of RAM to consume")
+parser.add_argument("-f", "--file", action="store_true", default=False, help="Write data to files")
+parser.add_argument("-F", "--file_size", type=int, default=100, help="File size in gb")
+parser.add_argument("-d", "--directory", type=str, default="", help="Location to write files to")
+parser.add_argument("-S", "--seek_timeout", type=int, default=120, help="Perform seek operations for this long")
 
 args=parser.parse_args()
 
@@ -86,13 +91,48 @@ def run_network_tests():
 					data=comm.recv(source=s,tag=11)
 					print "Got message size: %s from rank: %s to: %s in %s" % (sys.getsizeof(data), s,r, time.time()-t)
 
+from random import randint
+
+def run_file_tests():
+	if (args.directory)>0:
+		f=tempfile.TemporaryFile(dir=args.directory )
+	else:
+		f=tempfile.TemporaryFile()
+	max_size=1024*1024*args.file_size # number of bytes to write
+	t=time.time()
+	print "Writing %s mb to directory: %s one char at a time." % ( args.file_size, args.directory )
+	for i in xrange(max_size):
+		f.write(str(randint(0,9)))
+		f.flush()
+	print "Wrote %s mb to directory: %s in %s seconds." % ( args.file_size, args.directory, time.time()-t)
+	print "Randomly Seeking around the file"
+	t=time.time()
+	seeks=0
+	while(time.time()<t+args.seek_timeout):
+		f.seek(randint(0,max_size))
+		f.read(1)
+		f.write(str(randint(0,9)))
+		f.flush()
+		seeks+=1
+	print "Seeked, Read and Wrote for %s seconds, total: %s iterations." % (args.seek_timeout, seeks)
+	f.seek(0)
+	f.truncate()
+	t=time.time()
+	print "Writing %s mb to directory: %s using buffered io." % ( args.file_size, args.directory )
+	for i in xrange(max_size/1024*1024):
+		f.write("".join([str(randint(0,9)) for i in xrange(1024*1024)]))
+	f.flush()
+	print "Wrote %s mb to directory: %s in %s seconds." % ( args.file_size, args.directory, time.time()-t)
+	
+
 
 while(time.time()<=end_time):
 	if args.network:
 		run_network_tests()
 	if args.compute:
 		run_compute_tests(data)
-
+	if args.file:
+		run_file_tests()
 
 if rank == 0:
 	print "Finishing run. Current time is: %s ending on or after: %s" % (time.time(), end_time)
