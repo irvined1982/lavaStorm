@@ -148,7 +148,6 @@ class DiskTest(Test):
 
 class NetworkTest(Test):
     name = "Network IO Module"
-
     def __init__(self):
         from mpi4py import MPI
         logging.info("Initializing Network IO Module")
@@ -165,7 +164,7 @@ class NetworkTest(Test):
         logging.debug("Network IO: Blocking on test_cycle init")
         self._comm.Barrier()
         logging.debug("Network IO: Synced on test_cycle init.  Sending messages")
-        sizes=[4096, 8192, 16384]  #k
+        sizes=[1024, 2048, 4096]  #k
         for size in sizes:
             msg=[]
             while(sys.getsizeof(msg)<size*1024):
