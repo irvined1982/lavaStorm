@@ -165,16 +165,19 @@ class NetworkTest(Test):
         logging.debug("Network IO: Blocking on test_cycle init")
         self._comm.Barrier()
         logging.debug("Network IO: Synced on test_cycle init.  Sending messages")
-        size=4096 #k
-        msg=[]
-        while(sys.getsizeof(msg)<size*1024):
-            msg.append(r.random())
-        self._comm.Barrier()
-        for s in range(self._comm.Get_size()):
-            t=time.time()
-            data = self._comm.bcast(msg, root=s)
-            if self._comm.rank==0:
-                logging.info("Network IO: Broadcast message size: %s from rank: %s in %s" % (sys.getsizeof(msg), s, time.time()-t))
+        sizes=[4096, 8192, 16384]  #k
+        for size in sizes:
+            msg=[]
+            while(sys.getsizeof(msg)<size*1024):
+                msg.append(r.random())
+            self._comm.Barrier()
+            for s in range(self._comm.Get_size()):
+                for tr in xrange(10):
+                    self._comm.Barrier()
+                    t=time.time()
+                    data = self._comm.bcast(msg, root=s)
+                    if self._comm.rank==0:
+                        logging.info("Network IO: Broadcast message size: %s from rank: %s in %s" % (sys.getsizeof(msg), s, time.time()-t))
 
 
 
