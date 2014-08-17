@@ -17,14 +17,6 @@
 # along with LavaStorm. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from olwclient import OpenLavaConnection, Job
-from random import randint, choice
-import time
-import sys
-import datetime
-import logging
-import argparse
-
 """
 .. program:: smartStormRemote
 
@@ -92,6 +84,28 @@ The queue to submit jobs, if specified multiple times, then a random queue from 
 If no queues are specified, then the default queue will be used.
 
 
+.. option:: --min_tasks_per_job
+
+The minimum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and
+maximum values inclusive.  Default: 1.
+
+.. option:: --max_tasks_per_job
+
+The maximum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and
+maximum values inclusive.  Default  1.
+
+.. option:: --url
+
+The URL to submit jobs to if using openlava web.
+
+.. option:: --username
+
+The username of the account used when submitting jobs through openlava web.
+
+.. option:: --password
+
+The password of the account used when submitting jobs through openlava web.
+
 Profile Specific Options
 ------------------------
 
@@ -108,19 +122,59 @@ Use this profile when you want to maintain a current load on the cluster over a 
 
 The number of concurrent jobs that should be active at any given time.
 
+Submit Batch Profile
+^^^^^^^^^^^^^^^^^^^^
+
+The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete.  After a some
+observation time period, another batch is submitted, and the process repeats.
+
+No new jobs are submitted, until all the previous jobs have exited.
+
+Use this profile when you want to create a peak in demand.
+
+..option:: --min_num_jobs_per_batch
+
+The minimum number of jobs that should be submitted each time
+
+..option:: --max_num_jobs_per_batch
+
+The maximum number of jobs that should be submitted each time
+
+..option:: --iterations
+
+The number of iterations to do before exiting.
+
 """
+
+from olwclient import OpenLavaConnection, Job
+from random import randint, choice
+import time
+import sys
+import datetime
+import logging
+import argparse
 
 
 class Profile(object):
     connection = None  # OpenlavaWeb Connection
+    sub_command_name = "Not Defined"
+    sub_command_help = "Not Defined"
 
     def __init__(self):
         self.submit_queue = []
-        self.pending_jobs = []
-        self.running_jobs = []
-        self.killed_jobs = []
-        self.failed_jobs = []
-        self.completed_jobs = []
+        self.active_jobs = []
+
+        self.total_submitted_jobs = 0
+        self.total_active_jobs = 0
+        self.total_finished_jobs = 0
+
+        self.total_task_count = 0
+        self.pending_task_count = 0
+        self.running_task_count = 0
+        self.killed_task_count = 0
+        self.completed_task_count = 0
+        self.failed_task_count = 0
+
         self.projects = []
         self.queues = []
 
@@ -137,6 +191,20 @@ class Profile(object):
         self.max_observation_time = datetime.timedelta(seconds=0)
         self.min_num_processors = 1
         self.max_num_processors = 1
+        self.min_tasks_per_job = 1
+        self.max_tasks_per_job = 1
+
+    @classmethod
+    def add_arguments(cls, sub_parser):
+        """
+        Adds any command line arguments needed by the profile.  Arguments must not be positional arguments, and should
+        where possible set default values.  Must not return any value.
+
+        :param sub_parser: Sub parser object that arguments should be added to.
+        :return: None
+
+        """
+        return None
 
     def is_active(self):
         """
@@ -149,9 +217,8 @@ class Profile(object):
         if len(self.office_hours) < 1:
             return True
 
-        n = datetime.datetime.now()
         for h in self.office_hours:
-            if h['start_time'] <= n <= h['end_time']:
+            if h['start_time'] <= datetime.datetime.now().time() <= h['end_time']:
                 return True
         return False
 
@@ -162,8 +229,8 @@ class Profile(object):
         :return: Queue name to submit job to, or None if no queues defined.
 
         """
-        if len(self.projects) > 0:
-            return choice(self.projects)
+        if len(self.queues) > 0:
+            return choice(self.queues)
         return None
 
     def get_project_name(self):
@@ -186,12 +253,24 @@ class Profile(object):
         :return: None
 
         """
+        num_tasks = kwargs['num_tasks']
+        del(kwargs['num_tasks'])
+
+        if num_tasks > 1:
+            kwargs['job_name'] = "LavaStorm[1-%d]" % num_tasks
+
         logging.debug("Starting Job: %s" % kwargs)
-        for f in ['project', 'queue']:
+        for f in ['project_name', 'queue_name']:
             if f in kwargs and not kwargs[f]:
                 del (kwargs[f])
-        j = Job.submit(self.connection, **kwargs)
-        self.pending_jobs.append({'job_id': j.job_id, 'array_index': j.array_index})
+        logging.debug(kwargs)
+        jobs = Job.submit(self.connection, **kwargs)
+        for j in jobs:
+            print "Job: %s %s Submitted" % (j.job_id, j.array_index)
+            self.active_jobs.append({'job_id': j.job_id, 'array_index': j.array_index})
+        self.pending_task_count += 1
+        self.total_task_count += num_tasks
+        self.total_submitted_jobs += 1
 
     def get_job(self, job_id, array_index):
         """
@@ -204,15 +283,25 @@ class Profile(object):
         """
         return Job(self.connection, job_id, array_index)
 
-    def get_active_jobs(self):
+    def get_jobs(self, job_id):
         """
-        Returns an array of dictionaries containing the job_id and array_index of active jobs.  Active jobs are those
-        that are in pending or running state.
+        Gets all tasks for specified job id
 
-        :return: Array of job info dictionaries
+        :param job_id: Id of jot
+        :return: list of job objects
+        :rtype: list
 
         """
-        return self.pending_jobs + self.running_jobs
+        return Job.get_job_list(self.connection, job_id, -1)
+
+    def get_num_tasks(self):
+        """
+        Gets the number of tasks for the job.
+
+        :return: randint between min and max tasks per job.
+
+        """
+        return randint(self.min_tasks_per_job, self.max_tasks_per_job)
 
     def kill_all_jobs(self):
         """
@@ -223,24 +312,11 @@ class Profile(object):
         :return: None
 
         """
-        for jinf in self.get_active_jobs():
+        for jinf in self.active_jobs:
             job = self.get_job(jinf['job_id'], jinf['array_index'])
             if job.is_running or job.is_pending:
                 logging.debug("Job: %s:%s is active, killing..." % (job.job_id, job.array_index))
                 job.kill()
-
-    def get_active_job_count(self):
-        """
-        Returns the number of jobs that are active right now, that is the totals of the following:
-
-        * jobs that have not yet been submitted
-        * jobs that have been submitted and are pending
-        * jobs that are currently executing.
-
-        :return: int active_job_count
-
-        """
-        return len(self.pending_jobs) + len(self.running_jobs) + len(self.submit_queue)
 
     def get_num_processors(self):
         """
@@ -267,10 +343,10 @@ class Profile(object):
         Returns the number of seconds used to 'Observe' the results of the previous jobs.  This simulates the user
         reviewing their work, prior to submitting a new job.
 
-        :return: observation_time in seconds
+        :return: observation_time as TimeDelta
 
         """
-        return randint(self.min_observation_time.seconds, self.max_observation_time.seconds)
+        return datetime.timedelta(seconds=randint(self.min_observation_time.seconds, self.max_observation_time.seconds))
 
     def get_next_start_time(self):
         """
@@ -279,7 +355,7 @@ class Profile(object):
         :return: datetime object when job should start
 
         """
-        return datetime.datetime.now() + datetime.timedelta(seconds=self.get_observation_time())
+        return datetime.datetime.now() + self.get_observation_time()
 
     def create_job_command(self):
         """
@@ -305,41 +381,72 @@ class Profile(object):
 
         """
         logging.debug("Processing Jobs....")
-        jobs_to_check = self.get_active_jobs()
-        self.pending_jobs = []
-        self.running_jobs = []
-        for j in jobs_to_check:
-            logging.debug("Checking Job: %s" % j)
-            job_id = j['job_id']
-            array_index = j['array_index']
-            job = self.get_job(job_id, array_index)
-            if job.is_running:
-                logging.debug("Job %d is Running" % job.job_id)
-                self.running_jobs.append(j)
-            elif job.is_pending:
-                logging.debug("Job %d is Pending" % job.job_id)
-                self.pending_jobs.append(j)
-            elif job.is_completed:
-                logging.debug("Job %d is Completed" % job.job_id)
-                self.completed_jobs.append(j)
-            elif job.is_failed:
-                logging.debug("Job %d is Failed" % job.job_id)
-                self.failed_jobs.append(j)
-            elif job.was_killed:
-                logging.debug("Job %d was Killed" % job.job_id)
-                self.killed_jobs.append(j)
-            else:
-                logging.debug("Job %d is broken... %s" % (job.job_id, job))
-                raise ValueError("This shouldn't happen")
+
+        # Set of job ids that need to be downloaded and checked
+        active_job_ids = set()
+        # job ids that were checked and found to be active
+        ajids_for_total = set()
+        # tasks that are active
+        active_jobs = []
+        # totals
+        self.pending_task_count = 0
+        self.pending_task_count = 0
+        self.running_task_count = 0
+        self.killed_task_count = 0
+        self.completed_task_count = 0
+
+        for j in self.active_jobs:
+            active_job_ids.add(j['job_id'])
+
+        for jid in active_job_ids:
+            for job in self.get_jobs(jid):
+                logging.debug("Checking job: %d[%d]." % (job.job_id, job.array_index))
+                if job.is_running:
+                    ajids_for_total.add(job.job_id)
+                    logging.debug("Job %d is Running" % job.job_id)
+                    self.running_task_count += 1
+                    active_jobs.append(j)
+                elif job.is_pending:
+                    ajids_for_total.add(job.job_id)
+                    logging.debug("Job %d is Pending" % job.job_id)
+                    active_jobs.append(j)
+                    self.pending_task_count += 1
+                elif job.is_completed:
+                    self.completed_task_count += 1
+                    logging.debug("Job %d is Completed" % job.job_id)
+                elif job.is_failed:
+                    self.failed_task_count += 1
+                    logging.debug("Job %d is Failed" % job.job_id)
+                elif job.was_killed:
+                    self.killed_task_count += 1
+                    logging.debug("Job %d was Killed" % job.job_id)
+                else:
+                    logging.debug("Job %d is broken... %s" % (job.job_id, job))
+                    raise ValueError("This shouldn't happen")
+        self.total_active_jobs = len(ajids_for_total) + len(self.submit_queue)
+        self.total_finished_jobs = self.total_submitted_jobs - self.total_active_jobs
+
+        logging.info("Job Activity: %d jobs total, %d jobs waiting to submit, %d jobs active, %d jobs finished. " %
+                     (
+                         self.total_submitted_jobs,
+                         len(self.submit_queue),
+                         self.total_active_jobs,
+                         self.total_finished_jobs,
+                     ))
         logging.info(
-            "Current activity: %d waiting to submit, %d pending, %d running, %d complete, %d failed, %d killed" % (
-                len(self.submit_queue),
-                len(self.pending_jobs),
-                len(self.running_jobs),
-                len(self.completed_jobs),
-                len(self.failed_jobs),
-                len(self.killed_jobs)
-            ))
+            "Task Activity: %d total, %d pending, %d running, %d killed, %d complete, %d failed." %
+            (
+                self.total_task_count,
+                self.pending_task_count,
+                self.running_task_count,
+                self.killed_task_count,
+                self.completed_task_count,
+                self.failed_task_count
+            )
+        )
+
+    def create_jobs(self):
+        raise NotImplementedError
 
     def run(self):
         """
@@ -351,7 +458,8 @@ class Profile(object):
         try:
             while True:
                 self.process_running_jobs()
-                self.create_jobs()
+                if self.is_active():
+                    self.create_jobs()
                 self.start_jobs()
                 time.sleep(10)
         except KeyboardInterrupt:
@@ -380,10 +488,18 @@ class Profile(object):
 
 
 class BaseLoadProfile(Profile, object):
+    """
+    The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5
+    active jobs (Active jobs are defined as jobs that are either Pending or Running.  As jobs exit, new jobs are
+    submitted after a grace period of observation_time seconds.
+
+    Use this profile when you want to maintain a current load on the cluster over a period of time.
+
+    """
     @classmethod
-    def add_arguments(cls, sparser):
-        sparser.add_argument("--base_load", type=int, default=5,
-                             help="The number of concurrent jobs that should be active at any given time.")
+    def add_arguments(cls, sub_parser):
+        sub_parser.add_argument("--base_load", type=int, default=5,
+                                help="The number of concurrent jobs that should be active at any given time.")
 
     sub_command_name = "baseload"
     sub_command_help = "Maintains a steady number of jobs"
@@ -394,82 +510,158 @@ class BaseLoadProfile(Profile, object):
 
     def create_jobs(self):
         start_time = self.get_next_start_time()
-        logging.debug("Active job count: %s" % self.get_active_job_count())
-        if self.get_active_job_count() >= self.base_load:
+        logging.debug("Active job count: %s" % self.total_active_jobs)
+        if self.total_active_jobs >= self.base_load:
             return
 
-        for i in range(self.get_active_job_count(), self.base_load):
+        for i in range(self.total_active_jobs, self.base_load):
             logging.debug("Adding job to submit queue, start time: %s " % start_time)
             cmd = self.create_job_command()
             job_data = {
                 'start_time': start_time,
                 'job': {
                     'command': cmd,
-                    'num_processors': self.get_num_processors(),
-                    'project': self.get_project_name(),
-                    'queue': self.get_queue_name(),
+                    'requested_slots': self.get_num_processors(),
+                    'project_name': self.get_project_name(),
+                    'queue_name': self.get_queue_name(),
+                    'num_tasks': self.get_num_tasks(),
                 },
             }
 
             self.submit_queue.append(job_data)
 
 
-FORMAT = "[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+class SubmitBatchProfile(Profile, object):
+    """
+    The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete.  After a some
+    observation time period, another batch is submitted, and the process repeats.
 
-parser = argparse.ArgumentParser(description='Submits load to a batch scheduler')
-parser.add_argument("--failure_rate", type=int, choices=range(0, 101), default=1,
-                    help="The percent of submitted jobs that will fail of their own accord at a random interval.")
-parser.add_argument("--office_hours", type=str, default="00:00:00-23:59:59",
-                    help="A list of start and end times in the format HH:MM-HH:MM. ")
-parser.add_argument("--min_runtime", type=int, default=600,
-                    help="The minimum amount of time a completed job should run for, in seconds. Default: 10 Minutes.")
-parser.add_argument("--max_runtime", type=int, default=600,
-                    help="The maximum amount of time a completed job should run for, in seconds. Default: 10 Minutes.")
-parser.add_argument("--min_observation_time", type=int, default=120,
-                    help="The minimum amount of time a job should be 'observed' before a new job can be submitted.")
-parser.add_argument("--max_observation_time", type=int, default=120,
-                    help="The maximum amount of time a job should be 'observed' before a new job can be submitted.")
-parser.add_argument("--min_num_processors", type=int, default=1,
-                    help="The minimum number of processors each job should use.  Default 1")
-parser.add_argument("--max_num_processors", type=int, default=1,
-                    help="The maximum number of processors each job should use.  Default 1")
-parser.add_argument("--queue", type=str, dest="queues", action="append", default=[],
-                    help="Queue to submit to, if multiple queues are specified, selects one at random.")
-parser.add_argument("--project", dest="projects", type=str, action="append", default=[],
-                    help="Project to submit to, if multiple queues are specified, selects one at random.")
+    No new jobs are submitted, until all the previous jobs have exited.
 
-subparsers = parser.add_subparsers(help='sub-command help')
-for cls in Profile.__subclasses__():
-    p = subparsers.add_parser(cls.sub_command_name, help=cls.sub_command_help)
-    cls.add_arguments(p)
-    p.set_defaults(cls=cls)
+    Use this profile when you want to create a peak in demand.
 
-OpenLavaConnection.configure_argument_list(parser)
-args = parser.parse_args()
-try:
-    if args.office_hours:
-        ranges = []
-        for r in args.office_hours.split(','):
-            start, c, end = r.partition("-")
-            start = [int(x) for x in start.split(":")]
-            end = [int(x) for x in end.split(":")]
-            ranges.append({
-                'start_time': datetime.time(*start),
-                'end_time': datetime.time(*end),
-            })
-        args.office_hours = ranges
-except ValueError:
-    sys.stderr.write("Invalid time range supplied\n")
-    sys.exit(1)
-args.min_observation_time = datetime.timedelta(seconds=args.min_observation_time)
-args.max_observation_time = datetime.timedelta(seconds=args.max_observation_time)
+    """
+    @classmethod
+    def add_arguments(cls, sub_parser):
+        sub_parser.add_argument("--min_num_jobs_per_batch", type=int, default=5,
+                                help="The minimum number of jobs that should be submitted each time")
+        sub_parser.add_argument("--max_num_jobs_per_batch", type=int, default=10,
+                                help="The maximum number of jobs that should be submitted each time")
+        sub_parser.add_argument("--iterations", type=int, default=0,
+                                help="The number of iterations to do before exiting.")
 
-connection = OpenLavaConnection(args)
-connection.login()
-prof = args.cls()
-prof.connection = connection
-for k, v in vars(args).iteritems():
-    setattr(prof, k, v)
+    sub_command_name = "submitbatch"
+    sub_command_help = \
+        "The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete."
 
-prof.run()
+    def __init__(self):
+        self.sum_submitted_batches = 0
+        super(SubmitBatch, self).__init__()
+
+    def create_jobs(self):
+        start_time = self.get_next_start_time()
+        logging.debug("Active job count: %s" % self.total_active_jobs)
+
+        # If there are still active jobs, then don't submit any new ones.
+        if self.total_active_jobs > 0:
+            return
+
+        if self.iterations != 0 and self.sum_submitted_batches >= self.iterations:
+            logging.info("Maximum number of iterations reached, exiting.")
+            sys.exit(0)
+        self.sum_submitted_batches += 1
+
+        # Number of jobs to submit in this batch.
+        num_jobs = randint(self.min_num_jobs_per_batch, self.max_num_jobs_per_batch)
+        logging.info("Submitting a batch of %d jobs.")
+        for i in range(num_jobs):
+            logging.debug("Adding job to submit queue, start time: %s " % start_time)
+            job_data = {
+                'start_time': start_time,
+                'job': {
+                    'command': self.create_job_command(),
+                    'requested_slots': self.get_num_processors(),
+                    'project_name': self.get_project_name(),
+                    'queue_name': self.get_queue_name(),
+                    'num_tasks': self.get_num_tasks(),
+                },
+            }
+
+            self.submit_queue.append(job_data)
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(description='Submits load to a batch scheduler')
+
+    parser.add_argument("--failure_rate", type=int, choices=range(0, 101), default=1,
+                        help="The percent of submitted jobs that will fail of their own accord at a random interval.")
+    parser.add_argument("--office_hours", type=str, default="00:00:00-23:59:59",
+                        help="A list of start and end times in the format HH:MM-HH:MM. ")
+    parser.add_argument("--min_runtime", type=int, default=600,
+                        help=
+                        "The minimum amount of time a completed job should run for, in seconds. Default: 10 Minutes.")
+    parser.add_argument("--max_runtime", type=int, default=600,
+                        help=
+                        "The maximum amount of time a completed job should run for, in seconds. Default: 10 Minutes.")
+    parser.add_argument("--min_observation_time", type=int, default=120,
+                        help="The minimum amount of time a job should be 'observed' before a new job can be submitted.")
+    parser.add_argument("--max_observation_time", type=int, default=120,
+                        help="The maximum amount of time a job should be 'observed' before a new job can be submitted.")
+    parser.add_argument("--min_num_processors", type=int, default=1,
+                        help="The minimum number of processors each job should use.  Default 1")
+    parser.add_argument("--max_num_processors", type=int, default=1,
+                        help="The maximum number of processors each job should use.  Default 1")
+    parser.add_argument("--min_tasks_per_job", type=int, default=1,
+                        help="The minimum number of tasks per job.  Default  1.")
+    parser.add_argument("--max_tasks_per_job", type=int, default=1,
+                        help="The maximum number of tasks per job.  Default  1.")
+
+    parser.add_argument("--queue", type=str, dest="queues", action="append", default=[],
+                        help="Queue to submit to, if multiple queues are specified, selects one at random.")
+    parser.add_argument("--project", dest="projects", type=str, action="append", default=[],
+                        help="Project to submit to, if multiple queues are specified, selects one at random.")
+
+    parser.add_argument("--url", type=str, default=None,
+                        help="The URL of the openlava web server.")
+    parser.add_argument("--username", type=str, default=None,
+                        help="The username of the account used when submitting jobs through openlava web.")
+    parser.add_argument("--password", type=str, default=None,
+                        help="The password of the account used when submitting jobs through openlava web.")
+
+    subparsers = parser.add_subparsers(help='sub-command help')
+    for cls in Profile.__subclasses__():
+        p = subparsers.add_parser(cls.sub_command_name, help=cls.sub_command_help)
+        cls.add_arguments(p)
+        p.set_defaults(cls=cls)
+    return parser
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG, format="[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s")
+    prs = get_parser()
+    args = prs.parse_args()
+    try:
+        if args.office_hours:
+            ranges = []
+            for r in args.office_hours.split(','):
+                start, c, end = r.partition("-")
+                start = [int(x) for x in start.split(":")]
+                end = [int(x) for x in end.split(":")]
+                ranges.append({
+                    'start_time': datetime.time(*start),
+                    'end_time': datetime.time(*end),
+                })
+            args.office_hours = ranges
+    except ValueError:
+        sys.stderr.write("Invalid time range supplied\n")
+        sys.exit(1)
+    args.min_observation_time = datetime.timedelta(seconds=args.min_observation_time)
+    args.max_observation_time = datetime.timedelta(seconds=args.max_observation_time)
+
+    connection = OpenLavaConnection(args)
+    connection.login()
+    prof = args.cls()
+    prof.connection = connection
+    for k, v in vars(args).iteritems():
+        setattr(prof, k, v)
+
+    prof.run()
