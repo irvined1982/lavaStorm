@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>lavaStorm &mdash; LavaStorm 1.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-3.1.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-3.1.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="LavaStorm 1.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-inverse navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          LavaStorm</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.1</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+                <li><a href="https://www.clusterfsck.io/">ClusterFsck</a></li>
+                <li><a href="https://github.com/irvined1982/lavastorm">Code</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../profiles.html">Profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">LavaStorm Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../extension.html">Extending LavaStorm</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <h1>Source code for lavaStorm</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c"># Copyright 2011-2014 David Irvine</span>
+<span class="c">#</span>
+<span class="c"># This file is part of LavaStorm</span>
+<span class="c">#</span>
+<span class="c"># LavaStorm is free software: you can redistribute it and/or modify</span>
+<span class="c"># it under the terms of the GNU General Public License as published by</span>
+<span class="c"># the Free Software Foundation, either version 3 of the License, or (at</span>
+<span class="c"># your option) any later version.</span>
+<span class="c">#</span>
+<span class="c"># LavaStorm is distributed in the hope that it will be useful, but</span>
+<span class="c"># WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU</span>
+<span class="c"># General Public License for more details.</span>
+<span class="c">#</span>
+<span class="c"># You should have received a copy of the GNU General Public License</span>
+<span class="c"># along with LavaStorm. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c">#</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. program:: smartStormRemote</span>
+
+<span class="sd">.. option:: --failure_rate</span>
+
+<span class="sd">The percent of submitted jobs that will fail of their own accord at a random interval.  0: No jobs will fail, 100: All</span>
+<span class="sd">jobs will fail.  The default value is 1, that is 1 job in 100 on average will exit with a failure.</span>
+
+<span class="sd">.. option:: --office_hours</span>
+
+<span class="sd">A list of start and end times in the format HH:MM:SS-HH:MM:SS.  Multiple start and end times are supported. For example,</span>
+<span class="sd">for a user who is active between 9am and 5pm.::</span>
+
+<span class="sd">    --office_hours 09:00:00-17:00:00</span>
+
+<span class="sd">For a user who is active between 9am, and 5pm, but takes a 1hr lunch break at midday.::</span>
+
+<span class="sd">    --office_hours 09:00:00-12:00:00,13:00:00-17:00:00</span>
+
+<span class="sd">The default is to be active 24 hours a day.</span>
+
+<span class="sd">.. option:: --min_runtime</span>
+
+<span class="sd">The minimum amount of time in seconds a completed job should run for, in seconds. Default: 10 Minutes.</span>
+
+<span class="sd">.. option:: --max_runtime</span>
+
+<span class="sd">The maximum amount of time in seconds a completed job should run for, in seconds. Default: 10 Minutes.</span>
+
+<span class="sd">.. option:: --min_observation_time</span>
+
+<span class="sd">The minimum amount of time in seconds a job should be &#39;observed&#39; before a new job can be submitted.  Observation time is</span>
+<span class="sd">defined as the amount of time the user spends checking their results before submitting a new job.  The default is 2</span>
+<span class="sd">minutes.</span>
+
+<span class="sd">.. option:: --max_observation_time</span>
+
+<span class="sd">The maximum amount of time in seconds a job should be &#39;observed&#39; before a new job can be submitted.  Observation time is</span>
+<span class="sd">defined as the amount of time the user spends checking their results before submitting a new job.  The default is 2</span>
+<span class="sd">minutes.</span>
+
+<span class="sd">.. option:: --min_num_processors</span>
+
+<span class="sd">The minimum number of processors each job should use.  Default 1</span>
+
+<span class="sd">.. option:: --max_num_processors</span>
+
+<span class="sd">The maximum number of processors each job should use.  Default 1</span>
+
+<span class="sd">.. option:: --delay_time</span>
+
+<span class="sd">How long to wait before checking up on things. Default: 60 seconds.</span>
+
+<span class="sd">.. option:: --project</span>
+
+<span class="sd">The project to submit jobs, if specified multiple times, then a random project from the list will be chosen for e</span>
+<span class="sd">ach job.</span>
+
+<span class="sd">If no projects are specified, then the default project will be used, if it exists.</span>
+
+<span class="sd">.. option:: --queue</span>
+
+<span class="sd">The queue to submit jobs, if specified multiple times, then a random queue from the list will be chosen for each job.</span>
+
+<span class="sd">If no queues are specified, then the default queue will be used.</span>
+
+
+<span class="sd">.. option:: --min_tasks_per_job</span>
+
+<span class="sd">The minimum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and</span>
+<span class="sd">maximum values inclusive.  Default: 1.</span>
+
+<span class="sd">.. option:: --max_tasks_per_job</span>
+
+<span class="sd">The maximum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and</span>
+<span class="sd">maximum values inclusive.  Default  1.</span>
+
+<span class="sd">.. option:: --url</span>
+
+<span class="sd">The URL to submit jobs to if using openlava web.</span>
+
+<span class="sd">.. option:: --username</span>
+
+<span class="sd">The username of the account used when submitting jobs through openlava web.</span>
+
+<span class="sd">.. option:: --password</span>
+
+<span class="sd">The password of the account used when submitting jobs through openlava web.</span>
+
+<span class="sd">Profile Specific Options</span>
+<span class="sd">------------------------</span>
+
+<span class="sd">Base Load Profile</span>
+<span class="sd">^^^^^^^^^^^^^^^^^</span>
+
+<span class="sd">The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5</span>
+<span class="sd">active jobs (Active jobs are defined as jobs that are either Pending or Running.  As jobs exit, new jobs are submitted</span>
+<span class="sd">after a grace period of observation_time seconds.</span>
+
+<span class="sd">Use this profile when you want to maintain a current load on the cluster over a period of time.</span>
+
+<span class="sd">.. option:: --base_load</span>
+
+<span class="sd">The number of concurrent jobs that should be active at any given time.</span>
+
+<span class="sd">Submit Batch Profile</span>
+<span class="sd">^^^^^^^^^^^^^^^^^^^^</span>
+
+<span class="sd">The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete.  After a some</span>
+<span class="sd">observation time period, another batch is submitted, and the process repeats.</span>
+
+<span class="sd">No new jobs are submitted, until all the previous jobs have exited.</span>
+
+<span class="sd">Use this profile when you want to create a peak in demand.</span>
+
+<span class="sd">..option:: --min_num_jobs_per_batch</span>
+
+<span class="sd">The minimum number of jobs that should be submitted each time</span>
+
+<span class="sd">..option:: --max_num_jobs_per_batch</span>
+
+<span class="sd">The maximum number of jobs that should be submitted each time</span>
+
+<span class="sd">..option:: --iterations</span>
+
+<span class="sd">The number of iterations to do before exiting.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">olwclient</span> <span class="kn">import</span> <span class="n">OpenLavaConnection</span><span class="p">,</span> <span class="n">Job</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span><span class="p">,</span> <span class="n">choice</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+
+<span class="k">class</span> <span class="nc">Profile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">connection</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># OpenlavaWeb Connection</span>
+    <span class="n">sub_command_name</span> <span class="o">=</span> <span class="s">&quot;Not Defined&quot;</span>
+    <span class="n">sub_command_help</span> <span class="o">=</span> <span class="s">&quot;Not Defined&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_submitted_jobs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_finished_jobs</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">killed_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">completed_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failed_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">projects</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queues</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_rate</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c"># percent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">office_hours</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s">&#39;end_time&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mi">59</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_runtime</span> <span class="o">=</span> <span class="mi">60</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_runtime</span> <span class="o">=</span> <span class="mi">120</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observation_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observation_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_num_processors</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_num_processors</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_tasks_per_job</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_tasks_per_job</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Profile.add_arguments"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.add_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sub_parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds any command line arguments needed by the profile.  Arguments must not be positional arguments, and should</span>
+<span class="sd">        where possible set default values.  Must not return any value.</span>
+
+<span class="sd">        :param sub_parser: Sub parser object that arguments should be added to.</span>
+<span class="sd">        :return: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="Profile.is_active"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.is_active">[docs]</a>    <span class="k">def</span> <span class="nf">is_active</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns true if the current time is inside the range of times this profile is active.  If there are no active</span>
+<span class="sd">        &#39;office hours&#39; then always returns true.</span>
+
+<span class="sd">        :return: True if the current profile is &#39;in the office&#39;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">office_hours</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">office_hours</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;start_time&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">h</span><span class="p">[</span><span class="s">&#39;end_time&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="Profile.get_queue_name"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_queue_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_queue_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets a random queue to submit jobs to, if no queue exists to chose from, returns None.</span>
+
+<span class="sd">        :return: Queue name to submit job to, or None if no queues defined.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">queues</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">queues</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="Profile.get_project_name"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_project_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_project_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets a random project to submit jobs to, if no project exists to chose from, returns None.</span>
+
+<span class="sd">        :return: Project name to submit job to, or None if no projects defined.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projects</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projects</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="Profile.start_job"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.start_job">[docs]</a>    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Starts a new job, right now, using the job scheduler.</span>
+
+<span class="sd">        :param kwargs:  Dictionary containing arguments to be passed to the submit function.</span>
+
+<span class="sd">        :return: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_tasks</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;num_tasks&#39;</span><span class="p">]</span>
+        <span class="k">del</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;num_tasks&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">num_tasks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;LavaStorm[1-</span><span class="si">%d</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="n">num_tasks</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Starting Job: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;project_name&#39;</span><span class="p">,</span> <span class="s">&#39;queue_name&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
+                <span class="k">del</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="p">])</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">jobs</span> <span class="o">=</span> <span class="n">Job</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;Job: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> Submitted&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">j</span><span class="o">.</span><span class="n">array_index</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;job_id&#39;</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="s">&#39;array_index&#39;</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">array_index</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_task_count</span> <span class="o">+=</span> <span class="n">num_tasks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_submitted_jobs</span> <span class="o">+=</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="Profile.get_job"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets a job object for the job.</span>
+
+<span class="sd">        :param job_id: job_id of job to get</span>
+<span class="sd">        :param array_index: array_index of job to get</span>
+<span class="sd">        :return: Job object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Profile.get_jobs"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets all tasks for specified job id</span>
+
+<span class="sd">        :param job_id: Id of jot</span>
+<span class="sd">        :return: list of job objects</span>
+<span class="sd">        :rtype: list</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Job</span><span class="o">.</span><span class="n">get_job_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Profile.get_num_tasks"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_num_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the number of tasks for the job.</span>
+
+<span class="sd">        :return: randint between min and max tasks per job.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_tasks_per_job</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tasks_per_job</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Profile.kill_all_jobs"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.kill_all_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">kill_all_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds all jobs that are active, and tells the scheduler to kill them.</span>
+
+<span class="sd">        :param job_id: Job ID of the job</span>
+<span class="sd">        :param array_index: Array index of the job</span>
+<span class="sd">        :return: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">jinf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">jinf</span><span class="p">[</span><span class="s">&#39;job_id&#39;</span><span class="p">],</span> <span class="n">jinf</span><span class="p">[</span><span class="s">&#39;array_index&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_running</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">is_pending</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job: </span><span class="si">%s</span><span class="s">:</span><span class="si">%s</span><span class="s"> is active, killing...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">array_index</span><span class="p">))</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Profile.get_num_processors"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_num_processors">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_processors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the number of processors that should be used, uses a random number between min and max number of</span>
+<span class="sd">        permitted processors.</span>
+
+<span class="sd">        :return: num_processors - integer</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_num_processors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_processors</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Profile.get_runtime_seconds"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_runtime_seconds">[docs]</a>    <span class="k">def</span> <span class="nf">get_runtime_seconds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the number of seconds a job should run for.  Used when creating a job to find the runtime that the job</span>
+<span class="sd">        should run for.</span>
+
+<span class="sd">        :return:  runtime_seconds  - the job runtime in seconds as an integer.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_runtime</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_runtime</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Profile.get_observation_time"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_observation_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_observation_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the number of seconds used to &#39;Observe&#39; the results of the previous jobs.  This simulates the user</span>
+<span class="sd">        reviewing their work, prior to submitting a new job.</span>
+
+<span class="sd">        :return: observation_time as TimeDelta</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observation_time</span><span class="o">.</span><span class="n">seconds</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observation_time</span><span class="o">.</span><span class="n">seconds</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Profile.get_next_start_time"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_next_start_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_start_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a datetime object when the job should next start.</span>
+
+<span class="sd">        :return: datetime object when job should start</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_observation_time</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Profile.create_job_command"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.create_job_command">[docs]</a>    <span class="k">def</span> <span class="nf">create_job_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates the command to run</span>
+
+<span class="sd">        :return: cmd that will be executed as part of the job.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">run_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_runtime_seconds</span><span class="p">()</span>
+        <span class="n">exit_status</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">failure_rate</span> <span class="o">&gt;=</span> <span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">):</span>
+            <span class="n">run_time</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">run_time</span><span class="p">)</span>
+            <span class="n">exit_status</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s">&quot;sleep </span><span class="si">%s</span><span class="s">; exit </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">run_time</span><span class="p">,</span> <span class="n">exit_status</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cmd</span>
+</div>
+<div class="viewcode-block" id="Profile.process_running_jobs"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.process_running_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">process_running_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scans all job ids associated with this profile, and moves them into the associated list for</span>
+<span class="sd">        pending, running, complete, killed, and failed jobs.</span>
+
+<span class="sd">        :return: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Processing Jobs....&quot;</span><span class="p">)</span>
+
+        <span class="c"># Set of job ids that need to be downloaded and checked</span>
+        <span class="n">active_job_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c"># job ids that were checked and found to be active</span>
+        <span class="n">ajids_for_total</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c"># tasks that are active</span>
+        <span class="n">active_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># totals</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">killed_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">completed_task_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span><span class="p">:</span>
+            <span class="n">active_job_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="s">&#39;job_id&#39;</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">jid</span> <span class="ow">in</span> <span class="n">active_job_ids</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_jobs</span><span class="p">(</span><span class="n">jid</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Checking job: </span><span class="si">%d</span><span class="s">[</span><span class="si">%d</span><span class="s">].&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">array_index</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+                    <span class="n">ajids_for_total</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> is Running&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">active_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">is_pending</span><span class="p">:</span>
+                    <span class="n">ajids_for_total</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> is Pending&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                    <span class="n">active_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">is_completed</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">completed_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> is Completed&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">is_failed</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">failed_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> is Failed&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">was_killed</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">killed_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> was Killed&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> is broken... </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">job</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;This shouldn&#39;t happen&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ajids_for_total</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_finished_jobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_submitted_jobs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Job Activity: </span><span class="si">%d</span><span class="s"> jobs total, </span><span class="si">%d</span><span class="s"> jobs waiting to submit, </span><span class="si">%d</span><span class="s"> jobs active, </span><span class="si">%d</span><span class="s"> jobs finished. &quot;</span> <span class="o">%</span>
+                     <span class="p">(</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">total_submitted_jobs</span><span class="p">,</span>
+                         <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="p">),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">total_finished_jobs</span><span class="p">,</span>
+                     <span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s">&quot;Task Activity: </span><span class="si">%d</span><span class="s"> total, </span><span class="si">%d</span><span class="s"> pending, </span><span class="si">%d</span><span class="s"> running, </span><span class="si">%d</span><span class="s"> killed, </span><span class="si">%d</span><span class="s"> complete, </span><span class="si">%d</span><span class="s"> failed.&quot;</span> <span class="o">%</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">total_task_count</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">running_task_count</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">killed_task_count</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">completed_task_count</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">failed_task_count</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Profile.create_jobs"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.create_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">create_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</div>
+<div class="viewcode-block" id="Profile.run"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Called by the main loop periodically, manage jobs should create, start, stop, and kill processes as required.</span>
+
+<span class="sd">        :return: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process_running_jobs</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_active</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_jobs</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_jobs</span><span class="p">()</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Terminating. Killing all active jobs.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">kill_all_jobs</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Profile.start_jobs"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.start_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">start_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates through the submit_queue, checks it the current time is on or after the earliest time to submit the</span>
+<span class="sd">        job.  If that is the case, then the job is submitted using start_job().  If it isnt, it is left in the queue.</span>
+
+<span class="sd">        :return: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">jobs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">jobs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Jobs to process: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">jobs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job</span><span class="p">[</span><span class="s">&#39;start_time&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">():</span>
+                <span class="c"># Ready to be started</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_job</span><span class="p">(</span><span class="o">**</span><span class="n">job</span><span class="p">[</span><span class="s">&#39;job&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># Not ready, put back in the queue.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="BaseLoadProfile"><a class="viewcode-back" href="../profiles.html#lavaStorm.BaseLoadProfile">[docs]</a><span class="k">class</span> <span class="nc">BaseLoadProfile</span><span class="p">(</span><span class="n">Profile</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5</span>
+<span class="sd">    active jobs (Active jobs are defined as jobs that are either Pending or Running.  As jobs exit, new jobs are</span>
+<span class="sd">    submitted after a grace period of observation_time seconds.</span>
+
+<span class="sd">    Use this profile when you want to maintain a current load on the cluster over a period of time.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sub_parser</span><span class="p">):</span>
+        <span class="n">sub_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--base_load&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                                <span class="n">help</span><span class="o">=</span><span class="s">&quot;The number of concurrent jobs that should be active at any given time.&quot;</span><span class="p">)</span>
+
+    <span class="n">sub_command_name</span> <span class="o">=</span> <span class="s">&quot;baseload&quot;</span>
+    <span class="n">sub_command_help</span> <span class="o">=</span> <span class="s">&quot;Maintains a steady number of jobs&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_load</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseLoadProfile</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">create_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_start_time</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Active job count: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_load</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_load</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Adding job to submit queue, start time: </span><span class="si">%s</span><span class="s"> &quot;</span> <span class="o">%</span> <span class="n">start_time</span><span class="p">)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_job_command</span><span class="p">()</span>
+            <span class="n">job_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">start_time</span><span class="p">,</span>
+                <span class="s">&#39;job&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s">&#39;command&#39;</span><span class="p">:</span> <span class="n">cmd</span><span class="p">,</span>
+                    <span class="s">&#39;requested_slots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_processors</span><span class="p">(),</span>
+                    <span class="s">&#39;project_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_project_name</span><span class="p">(),</span>
+                    <span class="s">&#39;queue_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_queue_name</span><span class="p">(),</span>
+                    <span class="s">&#39;num_tasks&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_tasks</span><span class="p">(),</span>
+                <span class="p">},</span>
+            <span class="p">}</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_data</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="SubmitBatchProfile"><a class="viewcode-back" href="../profiles.html#lavaStorm.SubmitBatchProfile">[docs]</a><span class="k">class</span> <span class="nc">SubmitBatchProfile</span><span class="p">(</span><span class="n">Profile</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete.  After a some</span>
+<span class="sd">    observation time period, another batch is submitted, and the process repeats.</span>
+
+<span class="sd">    No new jobs are submitted, until all the previous jobs have exited.</span>
+
+<span class="sd">    Use this profile when you want to create a peak in demand.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sub_parser</span><span class="p">):</span>
+        <span class="n">sub_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--min_num_jobs_per_batch&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                                <span class="n">help</span><span class="o">=</span><span class="s">&quot;The minimum number of jobs that should be submitted each time&quot;</span><span class="p">)</span>
+        <span class="n">sub_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--max_num_jobs_per_batch&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                                <span class="n">help</span><span class="o">=</span><span class="s">&quot;The maximum number of jobs that should be submitted each time&quot;</span><span class="p">)</span>
+        <span class="n">sub_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--iterations&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                <span class="n">help</span><span class="o">=</span><span class="s">&quot;The number of iterations to do before exiting.&quot;</span><span class="p">)</span>
+
+    <span class="n">sub_command_name</span> <span class="o">=</span> <span class="s">&quot;submitbatch&quot;</span>
+    <span class="n">sub_command_help</span> <span class="o">=</span> \
+        <span class="s">&quot;The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete.&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sum_submitted_batches</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SubmitBatch</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">create_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_start_time</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Active job count: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span><span class="p">)</span>
+
+        <span class="c"># If there are still active jobs, then don&#39;t submit any new ones.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_active_jobs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_submitted_batches</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Maximum number of iterations reached, exiting.&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sum_submitted_batches</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c"># Number of jobs to submit in this batch.</span>
+        <span class="n">num_jobs</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_num_jobs_per_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_jobs_per_batch</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Submitting a batch of </span><span class="si">%d</span><span class="s"> jobs.&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_jobs</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Adding job to submit queue, start time: </span><span class="si">%s</span><span class="s"> &quot;</span> <span class="o">%</span> <span class="n">start_time</span><span class="p">)</span>
+            <span class="n">job_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">start_time</span><span class="p">,</span>
+                <span class="s">&#39;job&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s">&#39;command&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_job_command</span><span class="p">(),</span>
+                    <span class="s">&#39;requested_slots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_processors</span><span class="p">(),</span>
+                    <span class="s">&#39;project_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_project_name</span><span class="p">(),</span>
+                    <span class="s">&#39;queue_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_queue_name</span><span class="p">(),</span>
+                    <span class="s">&#39;num_tasks&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_tasks</span><span class="p">(),</span>
+                <span class="p">},</span>
+            <span class="p">}</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_data</span><span class="p">)</span>
+
+</div>
+<span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s">&#39;Submits load to a batch scheduler&#39;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--failure_rate&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">101</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The percent of submitted jobs that will fail of their own accord at a random interval.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--office_hours&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&quot;00:00:00-23:59:59&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;A list of start and end times in the format HH:MM-HH:MM. &quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--min_runtime&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span>
+                        <span class="s">&quot;The minimum amount of time a completed job should run for, in seconds. Default: 10 Minutes.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--max_runtime&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span>
+                        <span class="s">&quot;The maximum amount of time a completed job should run for, in seconds. Default: 10 Minutes.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--min_observation_time&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The minimum amount of time a job should be &#39;observed&#39; before a new job can be submitted.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--max_observation_time&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The maximum amount of time a job should be &#39;observed&#39; before a new job can be submitted.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--min_num_processors&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The minimum number of processors each job should use.  Default 1&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--max_num_processors&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The maximum number of processors each job should use.  Default 1&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--min_tasks_per_job&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The minimum number of tasks per job.  Default  1.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--max_tasks_per_job&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The maximum number of tasks per job.  Default  1.&quot;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--queue&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;queues&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;append&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Queue to submit to, if multiple queues are specified, selects one at random.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--project&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;projects&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;append&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Project to submit to, if multiple queues are specified, selects one at random.&quot;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--url&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The URL of the openlava web server.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--username&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The username of the account used when submitting jobs through openlava web.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--password&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The password of the account used when submitting jobs through openlava web.&quot;</span><span class="p">)</span>
+
+    <span class="n">subparsers</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span><span class="n">help</span><span class="o">=</span><span class="s">&#39;sub-command help&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">cls</span> <span class="ow">in</span> <span class="n">Profile</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">sub_command_name</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">cls</span><span class="o">.</span><span class="n">sub_command_help</span><span class="p">)</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">cls</span><span class="o">=</span><span class="n">cls</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;[</span><span class="si">%(filename)s</span><span class="s">:</span><span class="si">%(lineno)s</span><span class="s"> - </span><span class="si">%(funcName)20s</span><span class="s">() ] </span><span class="si">%(message)s</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">prs</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">prs</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">office_hours</span><span class="p">:</span>
+            <span class="n">ranges</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">office_hours</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">):</span>
+                <span class="n">start</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s">&quot;-&quot;</span><span class="p">)</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">start</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;:&quot;</span><span class="p">)]</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">end</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;:&quot;</span><span class="p">)]</span>
+                <span class="n">ranges</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="o">*</span><span class="n">start</span><span class="p">),</span>
+                    <span class="s">&#39;end_time&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="o">*</span><span class="n">end</span><span class="p">),</span>
+                <span class="p">})</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">office_hours</span> <span class="o">=</span> <span class="n">ranges</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;Invalid time range supplied</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">min_observation_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_observation_time</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">max_observation_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_observation_time</span><span class="p">)</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">OpenLavaConnection</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">connection</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+    <span class="n">prof</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">cls</span><span class="p">()</span>
+    <span class="n">prof</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">connection</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="n">prof</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2014, David Irvine.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

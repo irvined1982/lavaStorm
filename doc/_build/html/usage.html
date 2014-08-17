@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>LavaStorm Usage &mdash; LavaStorm 1.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.1.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.1.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="LavaStorm 1.1 documentation" href="index.html" />
+    <link rel="next" title="Extending LavaStorm" href="extension.html" />
+    <link rel="prev" title="Profiles" href="profiles.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body>
+
+  <div id="navbar" class="navbar navbar-inverse navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          LavaStorm</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.1</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            <li class="divider-vertical"></li>
+            
+                <li><a href="https://www.clusterfsck.io/">ClusterFsck</a></li>
+                <li><a href="https://github.com/irvined1982/lavastorm">Code</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="profiles.html">Profiles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">LavaStorm Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="extension.html">Extending LavaStorm</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">LavaStorm Usage</a><ul>
+<li><a class="reference internal" href="#profile-specific-options">Profile Specific Options</a><ul>
+<li><a class="reference internal" href="#base-load-profile">Base Load Profile</a></li>
+<li><a class="reference internal" href="#submit-batch-profile">Submit Batch Profile</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+              
+                
+  <li>
+    <a href="profiles.html" title="Previous Chapter: Profiles"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm">&laquo; Profiles</span>
+    </a>
+  </li>
+  <li>
+    <a href="extension.html" title="Next Chapter: Extending LavaStorm"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm">Extending LavaSt... &raquo;</span>
+    </a>
+  </li>
+              
+            
+            
+            
+            
+              <li class="hidden-sm">
+<div id="sourcelink">
+  <a href="_sources/usage.txt"
+     rel="nofollow">Source</a>
+</div></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
+  <div class="section" id="lavastorm-usage">
+<h1>LavaStorm Usage<a class="headerlink" href="#lavastorm-usage" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-python"><div class="highlight"><pre>usage: lavaStorm.py [-h]
+                    [--failure_rate FAILURE_RATE]
+                    [--office_hours OFFICE_HOURS]
+                    [--min_runtime MIN_RUNTIME]
+                    [--max_runtime MAX_RUNTIME]
+                    [--min_observation_time MIN_OBSERVATION_TIME]
+                    [--max_observation_time MAX_OBSERVATION_TIME]
+                    [--min_num_processors MIN_NUM_PROCESSORS]
+                    [--max_num_processors MAX_NUM_PROCESSORS]
+                    [--min_tasks_per_job MIN_TASKS_PER_JOB]
+                    [--max_tasks_per_job MAX_TASKS_PER_JOB]
+                    [--queue QUEUES]
+                    [--project PROJECTS]
+                    [--url URL]
+                    [--username USERNAME]
+                    [--password PASSWORD]
+                    {baseload|submitbatch} ...
+
+Submits load to a batch scheduler
+
+positional arguments:
+  {baseload,submitbatch}
+                        sub-command help
+    baseload            Maintains a steady number of jobs
+    submitbatch         The SubmitBatch profile submits a large number of jobs
+                        all at once, then waits for them to complete.
+</pre></div>
+</div>
+<span class="target" id="module-lavaStorm"></span><dl class="option">
+<dt id="cmdoption-smartStormRemote--failure_rate">
+<tt class="descname">--failure_rate</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--failure_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The percent of submitted jobs that will fail of their own accord at a random interval.  0: No jobs will fail, 100: All
+jobs will fail.  The default value is 1, that is 1 job in 100 on average will exit with a failure.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--office_hours">
+<tt class="descname">--office_hours</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--office_hours" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>A list of start and end times in the format HH:MM:SS-HH:MM:SS.  Multiple start and end times are supported. For example,
+for a user who is active between 9am and 5pm.:</p>
+<div class="highlight-python"><div class="highlight"><pre>--office_hours 09:00:00-17:00:00
+</pre></div>
+</div>
+<p>For a user who is active between 9am, and 5pm, but takes a 1hr lunch break at midday.:</p>
+<div class="highlight-python"><div class="highlight"><pre>--office_hours 09:00:00-12:00:00,13:00:00-17:00:00
+</pre></div>
+</div>
+<p>The default is to be active 24 hours a day.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--min_runtime">
+<tt class="descname">--min_runtime</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--min_runtime" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The minimum amount of time in seconds a completed job should run for, in seconds. Default: 10 Minutes.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--max_runtime">
+<tt class="descname">--max_runtime</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--max_runtime" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The maximum amount of time in seconds a completed job should run for, in seconds. Default: 10 Minutes.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--min_observation_time">
+<tt class="descname">--min_observation_time</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--min_observation_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The minimum amount of time in seconds a job should be &#8216;observed&#8217; before a new job can be submitted.  Observation time is
+defined as the amount of time the user spends checking their results before submitting a new job.  The default is 2
+minutes.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--max_observation_time">
+<tt class="descname">--max_observation_time</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--max_observation_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The maximum amount of time in seconds a job should be &#8216;observed&#8217; before a new job can be submitted.  Observation time is
+defined as the amount of time the user spends checking their results before submitting a new job.  The default is 2
+minutes.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--min_num_processors">
+<tt class="descname">--min_num_processors</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--min_num_processors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The minimum number of processors each job should use.  Default 1</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--max_num_processors">
+<tt class="descname">--max_num_processors</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--max_num_processors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The maximum number of processors each job should use.  Default 1</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--delay_time">
+<tt class="descname">--delay_time</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--delay_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>How long to wait before checking up on things. Default: 60 seconds.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--project">
+<tt class="descname">--project</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--project" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The project to submit jobs, if specified multiple times, then a random project from the list will be chosen for e
+ach job.</p>
+<p>If no projects are specified, then the default project will be used, if it exists.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--queue">
+<tt class="descname">--queue</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--queue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The queue to submit jobs, if specified multiple times, then a random queue from the list will be chosen for each job.</p>
+<p>If no queues are specified, then the default queue will be used.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--min_tasks_per_job">
+<tt class="descname">--min_tasks_per_job</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--min_tasks_per_job" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The minimum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and
+maximum values inclusive.  Default: 1.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--max_tasks_per_job">
+<tt class="descname">--max_tasks_per_job</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--max_tasks_per_job" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The maximum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and
+maximum values inclusive.  Default  1.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--url">
+<tt class="descname">--url</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--url" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The URL to submit jobs to if using openlava web.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--username">
+<tt class="descname">--username</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--username" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The username of the account used when submitting jobs through openlava web.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--password">
+<tt class="descname">--password</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--password" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The password of the account used when submitting jobs through openlava web.</p>
+<div class="section" id="profile-specific-options">
+<h2>Profile Specific Options<a class="headerlink" href="#profile-specific-options" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="base-load-profile">
+<h3>Base Load Profile<a class="headerlink" href="#base-load-profile" title="Permalink to this headline">¶</a></h3>
+<p>The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5
+active jobs (Active jobs are defined as jobs that are either Pending or Running.  As jobs exit, new jobs are submitted
+after a grace period of observation_time seconds.</p>
+<p>Use this profile when you want to maintain a current load on the cluster over a period of time.</p>
+<dl class="option">
+<dt id="cmdoption-smartStormRemote--base_load">
+<tt class="descname">--base_load</tt><tt class="descclassname"></tt><a class="headerlink" href="#cmdoption-smartStormRemote--base_load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>The number of concurrent jobs that should be active at any given time.</p>
+</div>
+<div class="section" id="submit-batch-profile">
+<h3>Submit Batch Profile<a class="headerlink" href="#submit-batch-profile" title="Permalink to this headline">¶</a></h3>
+<p>The SubmitBatch profile submits a large number of jobs all at once, then waits for them to complete.  After a some
+observation time period, another batch is submitted, and the process repeats.</p>
+<p>No new jobs are submitted, until all the previous jobs have exited.</p>
+<p>Use this profile when you want to create a peak in demand.</p>
+<p>..option:: &#8211;min_num_jobs_per_batch</p>
+<p>The minimum number of jobs that should be submitted each time</p>
+<p>..option:: &#8211;max_num_jobs_per_batch</p>
+<p>The maximum number of jobs that should be submitted each time</p>
+<p>..option:: &#8211;iterations</p>
+<p>The number of iterations to do before exiting.</p>
+</div>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2014, David Irvine.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
