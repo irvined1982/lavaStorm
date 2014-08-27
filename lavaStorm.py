@@ -316,7 +316,11 @@ class Profile(object):
             job = self.get_job(jinf['job_id'], jinf['array_index'])
             if job.is_running or job.is_pending:
                 logging.debug("Job: %s:%s is active, killing..." % (job.job_id, job.array_index))
-                job.kill()
+                try:
+                    # Allow this to fail, job might have finished, etc...
+                    job.kill()
+                except:
+                    pass
 
     def get_num_processors(self):
         """
@@ -401,7 +405,7 @@ class Profile(object):
         for jid in active_job_ids:
             for job in self.get_jobs(jid):
                 logging.debug("Checking job: %d[%d]." % (job.job_id, job.array_index))
-                if job.is_running:
+                if job.is_running or job.is_suspended:
                     ajids_for_total.add(job.job_id)
                     logging.debug("Job %d is Running" % job.job_id)
                     self.running_task_count += 1
@@ -457,11 +461,14 @@ class Profile(object):
         """
         try:
             while True:
-                self.process_running_jobs()
-                if self.is_active():
-                    self.create_jobs()
-                self.start_jobs()
-                time.sleep(10)
+                try:
+                    self.process_running_jobs()
+                    if self.is_active():
+                        self.create_jobs()
+                    self.start_jobs()
+                    time.sleep(10)
+                except:
+                    pass
         except KeyboardInterrupt:
             logging.info("Terminating. Killing all active jobs.")
             self.kill_all_jobs()
@@ -556,7 +563,7 @@ class SubmitBatchProfile(Profile, object):
 
     def __init__(self):
         self.sum_submitted_batches = 0
-        super(SubmitBatch, self).__init__()
+        super(SubmitBatchProfile, self).__init__()
 
     def create_jobs(self):
         start_time = self.get_next_start_time()
