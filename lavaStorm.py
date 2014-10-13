@@ -524,7 +524,7 @@ class JobManager(object):
         """
         Submits jobs into the job scheduler, returns a list of submitted jobs
         """
-        pass
+        raise NotImplementedError
 
     def get_jobs(self, job_id):
         """
