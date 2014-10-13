@@ -516,7 +516,7 @@ class JobManager(object):
         Called when the job manager is selected by the user
         """
         self.args = args
-        
+
 
     def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
         """
@@ -585,7 +585,7 @@ class directOpenLavaManager(JobManager):
         match = re.search( r'Job <(\d+)> is submitted to.*', output)
         job_id=match.group(1)
         jobs = [{
-            {'job_id': job_id, 'array_index': 0}
+            'job_id': job_id, 'array_index': 0
         }]
 
         if num_tasks > 1:
