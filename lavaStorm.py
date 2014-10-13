@@ -261,6 +261,7 @@ class Profile(object):
         logging.debug("Starting Job: %s" % kwargs)
 
         self.active_jobs.extend(self.manager.start_job(num_tasks, **kwargs))
+        logging.debug("Current active job list is: %s" % len(self.active_jobs))
         self.pending_task_count += num_tasks
         self.total_task_count += num_tasks
         self.total_submitted_jobs += 1
