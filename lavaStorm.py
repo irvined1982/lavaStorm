@@ -457,14 +457,11 @@ class Profile(object):
         """
         try:
             while True:
-                try:
                     self.process_running_jobs()
                     if self.is_active():
                         self.create_jobs()
                     self.start_jobs()
                     time.sleep(10)
-                except:
-                    pass
         except KeyboardInterrupt:
             logging.info("Terminating. Killing all active jobs.")
             self.kill_all_jobs()
