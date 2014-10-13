@@ -515,7 +515,8 @@ class JobManager(object):
         """
         Called when the job manager is selected by the user
         """
-        pass
+        self.args = args
+        
 
     def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
         """
