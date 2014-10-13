@@ -153,6 +153,9 @@ import sys
 import datetime
 import logging
 import argparse
+import re
+import subprocess
+
 
 
 class Profile(object):
@@ -244,31 +247,21 @@ class Profile(object):
             return choice(self.projects)
         return None
 
-    def start_job(self, **kwargs):
+    def start_job(self, num_tasks=1, **kwargs):
         """
         Starts a new job, right now, using the job scheduler.
 
+        :param num_tasks: Number of tasks contained by job
         :param kwargs:  Dictionary containing arguments to be passed to the submit function.
 
         :return: None
 
         """
-        num_tasks = kwargs['num_tasks']
-        del(kwargs['num_tasks'])
-
-        if num_tasks > 1:
-            kwargs['job_name'] = "LavaStorm[1-%d]" % num_tasks
 
         logging.debug("Starting Job: %s" % kwargs)
-        for f in ['project_name', 'queue_name']:
-            if f in kwargs and not kwargs[f]:
-                del (kwargs[f])
-        logging.debug(kwargs)
-        jobs = Job.submit(self.connection, **kwargs)
-        for j in jobs:
-            print "Job: %s %s Submitted" % (j.job_id, j.array_index)
-            self.active_jobs.append({'job_id': j.job_id, 'array_index': j.array_index})
-        self.pending_task_count += 1
+
+        self.active_jobs.extend(self.manager.start_job(num_tasks, **kwargs))
+        self.pending_task_count += num_tasks
         self.total_task_count += num_tasks
         self.total_submitted_jobs += 1
 
@@ -281,7 +274,7 @@ class Profile(object):
         :return: Job object
 
         """
-        return Job(self.connection, job_id, array_index)
+        return self.manager.get_job(job_id, array_index)
 
     def get_jobs(self, job_id):
         """
@@ -292,7 +285,9 @@ class Profile(object):
         :rtype: list
 
         """
-        return Job.get_job_list(self.connection, job_id, -1)
+        return self.manager.get_jobs(job_id)
+
+
 
     def get_num_tasks(self):
         """
@@ -494,6 +489,286 @@ class Profile(object):
                 self.submit_queue.append(job)
 
 
+class SimpleJob(object):
+    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False, was_killed=False):
+        self.is_running = is_running
+        self.is_pending = is_pending
+        self.is_completed = is_completed
+        self.is_failed = is_failed
+        self.was_killed = was_killed
+        self.job_id = job_id
+        self.array_index = array_index
+    def kill(self):
+        pass
+
+
+class JobManager(object):
+    """
+    Job Managers are responsible for submitting, monitoring the state of, and killing jobs.
+    """
+    @classmethod
+    def add_argparse_arguments(cls, parser):
+        """
+        Adds any additional command line arguments needed by the job manager
+        """
+        pass
+
+    def initialize(self, args):
+        """
+        Called when the job manager is selected by the user
+        """
+        pass
+
+    def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
+        """
+        Submits jobs into the job scheduler, returns a list of submitted jobs
+        """
+        pass
+
+    def get_jobs(self, job_id):
+        """
+        Gets all jobs for a specified job id
+        """
+        pass
+
+    def get_job(self, job_id, array_index):
+        """
+        Gets a single job specified by the job id and array index
+        """
+        pass
+
+
+class directSGEManager(JobManager):
+    scheduler_name = "sge_cli"
+
+
+class OpenLavaDirectJob(SimpleJob):
+    def kill(self):
+        cmd = ["bkill"]
+        if self.array_index is not 0:
+            cmd.append("%s[%s]" % (self.job_id, self.array_index))
+        else:
+            cmd.append("%s" % self.job_id)
+        subprocess.check_output(cmd)
+
+
+class directOpenLavaManager(JobManager):
+    scheduler_name = 'openlava_cli'
+
+    @classmethod
+    def add_argparse_arguments(cls, parser):
+        parser.add_argument("--bsub_command", type=str, default="bsub",
+                            help="The path to the bsub command, additional arguments can also be passed")
+
+    def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
+        job_command=self.args.bsub_command.split()
+
+        if requested_slots:
+            job_command.append("-n")
+            job_command.append("%s" % requested_slots)
+
+        if num_tasks > 1:
+            job_name = "LavaStorm[1-%d]" % num_tasks
+            job_command.append("-J")
+            job_command.append(job_name)
+
+        if project_name:
+            job_command.append("-P")
+            job_command.append(project_name)
+
+        if queue_name:
+            job_command.append("-q")
+            job_command.append(queue_name)
+
+        job_command.append(command)
+        logging.debug("Submitting job: %s" % " ".join(job_command))
+        output = subprocess.check_output(job_command)
+        match = re.search( r'Job <(\d+)> is submitted to.*', output)
+        job_id=match.group(1)
+        jobs = [{
+            {'job_id': job_id, 'array_index': 0}
+        }]
+
+        if num_tasks > 1:
+            jobs = []
+            bjobs_command=["bjobs", "-w", "-a", "%s" % job_id]
+            output = subprocess.check_output(bjobs_command)
+            for line in output.splitlines():
+                match = re.search( r'.*LavaStorm\[\d+\]', line)
+                array_id = match.group(1)
+                jobs.append({'job_id': job_id, 'array_index': array_id})
+
+        return jobs
+
+    def get_jobs(self, job_id):
+        bjobs_command = ["bjobs", "-w", "-a", "%s" % job_id]
+        output = subprocess.check_output(bjobs_command)
+        lines = output.splitlines()
+        jobs = []
+        for line in lines:
+            if len(lines) > 1:
+                # get array index
+                match = re.search(r'.*LavaStorm\[\d+\]', line)
+                array_index = match.group(1)
+            else:
+                array_index = 0
+            jobs.append(self.get_job(job_id, array_index))
+
+        return jobs
+
+    def get_job(self, job_id, array_index):
+        if array_index != 0:
+            job = "%s[%s]" % (job_id, array_index)
+        else:
+            job = "%s" % job_id
+
+        bjobs_command = ["bjobs", "-w", "-a", job]
+        output = subprocess.check_output(bjobs_command)
+        entries = output.split()
+        state = entries[2]
+        states={
+            "PEND":{
+                "is_running":False,
+                "is_pending":True,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "PSUSP":{
+                "is_running":False,
+                "is_pending":True,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "RUN":{
+                "is_running":True,
+                "is_pending":False,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "USUSP":{
+                "is_running":True,
+                "is_pending":False,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "SSUSP":{
+                "is_running":True,
+                "is_pending":False,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "DONE":{
+                "is_running":False,
+                "is_pending":False,
+                "is_completed":True,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "EXIT":{
+                "is_running":False,
+                "is_pending":False,
+                "is_completed":False,
+                "is_failed":True,
+                "was_killed": False,
+            },
+            "UNKWN":{
+                "is_running":True,
+                "is_pending":False,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+            "ZOMBI":{
+                "is_running":True,
+                "is_pending":False,
+                "is_completed":False,
+                "is_failed":False,
+                "was_killed": False,
+            },
+        }
+
+        return Job(self.connection, job_id, array_index, **states[state])
+
+
+class OpenLavaClusterAPIManager(JobManager):
+    scheduler_name = "openlava_cluster_api"
+
+
+
+class OpenLavaRemoteManager(JobManager):
+    """
+    Job Manager for the OpenLavaWeb server.  Uses REST calls to manage jobs.
+
+    """
+    scheduler_name="openlava_web"
+
+    @classmethod
+    def add_argparse_arguments(cls, parser):
+        parser.add_argument("--url", type=str, default=None,
+                        help="The URL of the openlava web server.")
+        parser.add_argument("--username", type=str, default=None,
+                        help="The username of the account used when submitting jobs through openlava web.")
+        parser.add_argument("--password", type=str, default=None,
+                        help="The password of the account used when submitting jobs through openlava web.")
+
+
+    def initialize(self, args):
+        logging.debug("Initializing Job Manager for OpenLava Web Interface")
+        connection = OpenLavaConnection(args)
+        logging.debug("Logging in...")
+        connection.login()
+        logging.debug("Initialized.")
+        self.connection = connection
+
+    def start_job(self, num_tasks, **kwargs):
+        if num_tasks > 1:
+            kwargs['job_name'] = "LavaStorm[1-%d]" % num_tasks
+
+        for f in ['project_name', 'queue_name']:
+            if f in kwargs and not kwargs[f]:
+                del (kwargs[f])
+        return [
+            {'job_id': j.job_id, 'array_index': j.array_index} for j in Job.submit(self.connection, **kwargs)
+        ]
+
+    def get_jobs(self, job_id):
+        return Job.get_job_list(self.connection, job_id, -1)
+
+    def get_job(self, job_id, array_index):
+        return Job(self.connection, job_id, array_index)
+
+
+
+class OpenLavaCAPIManager(JobManager):
+    scheduler_name="openlava_c_api"
+    def start_job(self):
+        pass
+
+    def get_jobs(self, job_id):
+        pass
+
+    def get_job(self, job_id, array_index):
+        pass
+
+    def submit_job(self, **kwargs):
+        pass
+
+    class SimpleJob(object):
+        def __init__(self, job_id, array_index=None):
+            pass
+
+        def kill(self):
+            pass
+
+
+
+
+
 class BaseLoadProfile(Profile, object):
     """
     The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5
@@ -628,12 +903,6 @@ def get_parser():
     parser.add_argument("--project", dest="projects", type=str, action="append", default=[],
                         help="Project to submit to, if multiple queues are specified, selects one at random.")
 
-    parser.add_argument("--url", type=str, default=None,
-                        help="The URL of the openlava web server.")
-    parser.add_argument("--username", type=str, default=None,
-                        help="The username of the account used when submitting jobs through openlava web.")
-    parser.add_argument("--password", type=str, default=None,
-                        help="The password of the account used when submitting jobs through openlava web.")
 
     subparsers = parser.add_subparsers(help='sub-command help')
     for cls in Profile.__subclasses__():
@@ -645,6 +914,18 @@ def get_parser():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s")
     prs = get_parser()
+
+    # Discover which job manager interfaces are available, set these as
+    # choices for the scheduler option.
+    #
+    # Add any options required by the job manager to the argument parser
+    sched_choices = []
+    for c in JobManager.__subclasses__():
+        c.add_argparse_arguments(prs)
+        sched_choices.append(c.scheduler_name)
+
+    prs.add_argument("--scheduler", type=str, dest="scheduler",choices=sched_choices, help="Scheduler interface to use")
+
     args = prs.parse_args()
     try:
         if args.office_hours:
@@ -664,10 +945,17 @@ if __name__ == "__main__":
     args.min_observation_time = datetime.timedelta(seconds=args.min_observation_time)
     args.max_observation_time = datetime.timedelta(seconds=args.max_observation_time)
 
-    connection = OpenLavaConnection(args)
-    connection.login()
+    # Initialize the job manager, if invalid choice then raise an exception
+    manager = None
+    for c in JobManager.__subclasses__():
+        if c.scheduler_name == args.scheduler:
+            manager = c()
+            manager.initialize(args)
+    if not manager:
+        raise ValueError("Manager undefined")
+
     prof = args.cls()
-    prof.connection = connection
+    prof.manager = manager
     for k, v in vars(args).iteritems():
         setattr(prof, k, v)
 
