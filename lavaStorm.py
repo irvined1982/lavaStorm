@@ -488,11 +488,12 @@ class Profile(object):
 
 
 class SimpleJob(object):
-    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False, was_killed=False):
+    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False, is_suspended=False, was_killed=False):
         self.is_running = is_running
         self.is_pending = is_pending
         self.is_completed = is_completed
         self.is_failed = is_failed
+        self.is_suspended = is_suspended
         self.was_killed = was_killed
         self.job_id = int(job_id)
         self.array_index = int(array_index)
@@ -636,13 +637,15 @@ class directOpenLavaManager(JobManager):
             "PEND":{
                 "is_running":False,
                 "is_pending":True,
+                "is_suspended": False,
                 "is_completed":False,
                 "is_failed":False,
                 "was_killed": False,
             },
             "PSUSP":{
                 "is_running":False,
-                "is_pending":True,
+                "is_pending": False,
+                "is_suspended": True,
                 "is_completed":False,
                 "is_failed":False,
                 "was_killed": False,
@@ -650,19 +653,22 @@ class directOpenLavaManager(JobManager):
             "RUN":{
                 "is_running":True,
                 "is_pending":False,
+                "is_suspended": False,
                 "is_completed":False,
                 "is_failed":False,
                 "was_killed": False,
             },
             "USUSP":{
-                "is_running":True,
+                "is_running":False,
                 "is_pending":False,
+                "is_suspended": True,
                 "is_completed":False,
                 "is_failed":False,
                 "was_killed": False,
             },
             "SSUSP":{
-                "is_running":True,
+                "is_running":False,
+                "is_suspended": True,
                 "is_pending":False,
                 "is_completed":False,
                 "is_failed":False,
@@ -671,6 +677,7 @@ class directOpenLavaManager(JobManager):
             "DONE":{
                 "is_running":False,
                 "is_pending":False,
+                "is_suspended": False,
                 "is_completed":True,
                 "is_failed":False,
                 "was_killed": False,
@@ -678,6 +685,7 @@ class directOpenLavaManager(JobManager):
             "EXIT":{
                 "is_running":False,
                 "is_pending":False,
+                "is_suspended": False,
                 "is_completed":False,
                 "is_failed":True,
                 "was_killed": False,
@@ -685,6 +693,7 @@ class directOpenLavaManager(JobManager):
             "UNKWN":{
                 "is_running":True,
                 "is_pending":False,
+                "is_suspended": False,
                 "is_completed":False,
                 "is_failed":False,
                 "was_killed": False,
@@ -692,6 +701,7 @@ class directOpenLavaManager(JobManager):
             "ZOMBI":{
                 "is_running":True,
                 "is_pending":False,
+                "is_suspended": False,
                 "is_completed":False,
                 "is_failed":False,
                 "was_killed": False,
