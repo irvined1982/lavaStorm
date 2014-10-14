@@ -698,7 +698,7 @@ class directOpenLavaManager(JobManager):
             },
         }
 
-        return Job(self.connection, job_id, array_index, **states[state])
+        return OpenLavaDirectJob(job_id, array_index, **states[state])
 
 
 class OpenLavaClusterAPIManager(JobManager):
