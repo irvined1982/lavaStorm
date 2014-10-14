@@ -18,6 +18,7 @@ LavaStorm Usage
                         [--url URL]
                         [--username USERNAME]
                         [--password PASSWORD]
+                        [--scheduler {sge_cli,openlava_cli,openlava_cluster_api,openlava_web,openlava_c_api}]
                         {baseload|submitbatch} ...
 
     Submits load to a batch scheduler
@@ -28,7 +29,5 @@ LavaStorm Usage
         baseload            Maintains a steady number of jobs
         submitbatch         The SubmitBatch profile submits a large number of jobs
                             all at once, then waits for them to complete.
-
-
 
 .. automodule:: lavaStorm

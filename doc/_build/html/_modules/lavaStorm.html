@@ -31,10 +31,22 @@
     <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="LavaStorm 1.1 documentation" href="../index.html" />
     <link rel="up" title="Module code" href="index.html" />
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-51064094-1', 'clusterfsck.io');
+  ga('send', 'pageview');
+
+</script>
+
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+
 
   </head>
   <body>
@@ -71,6 +83,9 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="../profiles.html">Profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schedulers.html">Scheduler Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schedulers.html#openlava">OpenLava</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schedulers.html#sun-grid-engine">Sun Grid Engine</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">LavaStorm Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../extension.html">Extending LavaStorm</a></li>
 </ul>
@@ -205,7 +220,6 @@
 
 <span class="sd">If no queues are specified, then the default queue will be used.</span>
 
-
 <span class="sd">.. option:: --min_tasks_per_job</span>
 
 <span class="sd">The minimum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and</span>
@@ -215,6 +229,23 @@
 
 <span class="sd">The maximum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and</span>
 <span class="sd">maximum values inclusive.  Default  1.</span>
+
+<span class="sd">.. option:: --scheduler</span>
+
+<span class="sd">The Scheduler interface to use, can be one of: sge_cli,openlava_cli,openlava_cluster_api,openlava_web,openlava_c_api</span>
+
+<span class="sd">Scheduler Specific Options</span>
+<span class="sd">--------------------------</span>
+
+<span class="sd">Openlava Command Line Interface</span>
+<span class="sd">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+
+<span class="sd">.. option:: --bsub_command</span>
+
+<span class="sd">The path to the bsub command, additional arguments can also be passed.</span>
+
+<span class="sd">Openlava Web</span>
+<span class="sd">^^^^^^^^^^^^</span>
 
 <span class="sd">.. option:: --url</span>
 
@@ -268,21 +299,125 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">olwclient</span> <span class="kn">import</span> <span class="n">OpenLavaConnection</span><span class="p">,</span> <span class="n">Job</span>
 <span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span><span class="p">,</span> <span class="n">choice</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">from</span> <span class="nn">olwclient</span> <span class="kn">import</span> <span class="n">OpenLavaConnection</span><span class="p">,</span> <span class="n">Job</span>
 
 
+<div class="viewcode-block" id="SimpleJob"><a class="viewcode-back" href="../schedulers.html#lavaStorm.SimpleJob">[docs]</a><span class="k">class</span> <span class="nc">SimpleJob</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SimpleJob is a very simple job implementation providing just enough information for LavaStorm to make decisions, and</span>
+<span class="sd">    no more.  Job Managers are free to either subclass SimpleJob, or use a different implementation entirely however</span>
+<span class="sd">    the following methods and attributes MUST be implemented.</span>
+
+<span class="sd">    At least one of the following attributes must be true.  All must be defined.</span>
+
+<span class="sd">    .. py:attribute:: is_running</span>
+
+<span class="sd">        True if the job is executing on the cluster.</span>
+
+<span class="sd">    .. py:attribute:: is_pending</span>
+
+<span class="sd">        True if the job is pending execution</span>
+
+<span class="sd">    .. py:attribute:: is_completed</span>
+
+<span class="sd">        True if and only if the job has completed successfully.</span>
+
+<span class="sd">    .. py:attribute:: is_failed</span>
+
+<span class="sd">        True if and only if the job failed</span>
+
+<span class="sd">    .. py:attribute:: is_suspended</span>
+
+<span class="sd">        True if the job is currently suspended</span>
+
+<span class="sd">    .. py:attribute:: was_killed</span>
+
+<span class="sd">        True if the job was killed by the end user or administrator</span>
+
+<span class="sd">    .. py:attribute:: job_id</span>
+
+<span class="sd">        The numerical Job ID</span>
+
+<span class="sd">    .. py:attribute:: array_index</span>
+
+<span class="sd">        The numerical array index, zero if not part of an array,</span>
+
+<span class="sd">    .. py:method:: kill()</span>
+
+<span class="sd">        Kill the job using the job scheduler.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">,</span> <span class="n">is_running</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_pending</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_completed</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_failed</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                 <span class="n">is_suspended</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">was_killed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_running</span> <span class="o">=</span> <span class="n">is_running</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_pending</span> <span class="o">=</span> <span class="n">is_pending</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_completed</span> <span class="o">=</span> <span class="n">is_completed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_failed</span> <span class="o">=</span> <span class="n">is_failed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_suspended</span> <span class="o">=</span> <span class="n">is_suspended</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">was_killed</span> <span class="o">=</span> <span class="n">was_killed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">array_index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+</div>
+<div class="viewcode-block" id="JobManager"><a class="viewcode-back" href="../schedulers.html#lavaStorm.JobManager">[docs]</a><span class="k">class</span> <span class="nc">JobManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Job Managers are responsible for submitting, monitoring the state of, and killing jobs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_argparse_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds any additional command line arguments needed by the job manager.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed_args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Called when the job manager is selected by the user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">parsed_args</span>
+
+    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">,</span> <span class="n">requested_slots</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">project_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">queue_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Submits jobs into the job scheduler, returns a list of submitted jobs as an array of dictionaries,</span>
+<span class="sd">        each element containing the job_id and array_index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets all jobs for a specified job id. Returns a list of objects that implement SimpleJob</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets a single job specified by the job id and array index.  Returns an object that implements SimpleJob</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+</div>
 <span class="k">class</span> <span class="nc">Profile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="n">connection</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># OpenlavaWeb Connection</span>
     <span class="n">sub_command_name</span> <span class="o">=</span> <span class="s">&quot;Not Defined&quot;</span>
     <span class="n">sub_command_help</span> <span class="o">=</span> <span class="s">&quot;Not Defined&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manager</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -366,31 +501,22 @@
             <span class="k">return</span> <span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projects</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">None</span>
 </div>
-<div class="viewcode-block" id="Profile.start_job"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.start_job">[docs]</a>    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Profile.start_job"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.start_job">[docs]</a>    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_tasks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Starts a new job, right now, using the job scheduler.</span>
 
+<span class="sd">        :param num_tasks: Number of tasks contained by job</span>
 <span class="sd">        :param kwargs:  Dictionary containing arguments to be passed to the submit function.</span>
 
 <span class="sd">        :return: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">num_tasks</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;num_tasks&#39;</span><span class="p">]</span>
-        <span class="k">del</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;num_tasks&#39;</span><span class="p">])</span>
-
-        <span class="k">if</span> <span class="n">num_tasks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;LavaStorm[1-</span><span class="si">%d</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="n">num_tasks</span>
 
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Starting Job: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;project_name&#39;</span><span class="p">,</span> <span class="s">&#39;queue_name&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
-                <span class="k">del</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="p">])</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">jobs</span> <span class="o">=</span> <span class="n">Job</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
-            <span class="k">print</span> <span class="s">&quot;Job: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> Submitted&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">j</span><span class="o">.</span><span class="n">array_index</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;job_id&#39;</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="s">&#39;array_index&#39;</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">array_index</span><span class="p">})</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">start_job</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Current active job list is: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_jobs</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pending_task_count</span> <span class="o">+=</span> <span class="n">num_tasks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">total_task_count</span> <span class="o">+=</span> <span class="n">num_tasks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">total_submitted_jobs</span> <span class="o">+=</span> <span class="mi">1</span>
 </div>
@@ -403,7 +529,7 @@
 <span class="sd">        :return: Job object</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Profile.get_jobs"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -414,7 +540,7 @@
 <span class="sd">        :rtype: list</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Job</span><span class="o">.</span><span class="n">get_job_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">get_jobs</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Profile.get_num_tasks"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_num_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -429,8 +555,6 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Finds all jobs that are active, and tells the scheduler to kill them.</span>
 
-<span class="sd">        :param job_id: Job ID of the job</span>
-<span class="sd">        :param array_index: Array index of the job</span>
 <span class="sd">        :return: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -438,7 +562,11 @@
             <span class="n">job</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">jinf</span><span class="p">[</span><span class="s">&#39;job_id&#39;</span><span class="p">],</span> <span class="n">jinf</span><span class="p">[</span><span class="s">&#39;array_index&#39;</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_running</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">is_pending</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job: </span><span class="si">%s</span><span class="s">:</span><span class="si">%s</span><span class="s"> is active, killing...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">array_index</span><span class="p">))</span>
-                <span class="n">job</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c"># Allow this to fail, job might have finished, etc...</span>
+                    <span class="n">job</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
 </div>
 <div class="viewcode-block" id="Profile.get_num_processors"><a class="viewcode-back" href="../extension.html#lavaStorm.Profile.get_num_processors">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_processors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -523,7 +651,7 @@
         <span class="k">for</span> <span class="n">jid</span> <span class="ow">in</span> <span class="n">active_job_ids</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_jobs</span><span class="p">(</span><span class="n">jid</span><span class="p">):</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Checking job: </span><span class="si">%d</span><span class="s">[</span><span class="si">%d</span><span class="s">].&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">array_index</span><span class="p">))</span>
-                <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_running</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_running</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">is_suspended</span><span class="p">:</span>
                     <span class="n">ajids_for_total</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
                     <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Job </span><span class="si">%d</span><span class="s"> is Running&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">running_task_count</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -609,6 +737,256 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">submit_queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
 
 </div>
+<div class="viewcode-block" id="DirectSGEManager"><a class="viewcode-back" href="../schedulers.html#lavaStorm.DirectSGEManager">[docs]</a><span class="k">class</span> <span class="nc">DirectSGEManager</span><span class="p">(</span><span class="n">JobManager</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Job Manager for Sun Grid Engine using the Command Line Interface.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scheduler_name</span> <span class="o">=</span> <span class="s">&quot;sge_cli&quot;</span>
+
+</div>
+<div class="viewcode-block" id="OpenLavaDirectJob"><a class="viewcode-back" href="../schedulers.html#lavaStorm.OpenLavaDirectJob">[docs]</a><span class="k">class</span> <span class="nc">OpenLavaDirectJob</span><span class="p">(</span><span class="n">SimpleJob</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SimpleJob Implementation for</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;bkill&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">[</span><span class="si">%s</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_index</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="DirectOpenLavaManager"><a class="viewcode-back" href="../schedulers.html#lavaStorm.DirectOpenLavaManager">[docs]</a><span class="k">class</span> <span class="nc">DirectOpenLavaManager</span><span class="p">(</span><span class="n">JobManager</span><span class="p">):</span>
+    <span class="n">scheduler_name</span> <span class="o">=</span> <span class="s">&#39;openlava_cli&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_argparse_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--bsub_command&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&quot;bsub&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s">&quot;The path to the bsub command, additional arguments can also be passed&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">,</span> <span class="n">requested_slots</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">project_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">queue_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">job_command</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">bsub_command</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">requested_slots</span><span class="p">:</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;-n&quot;</span><span class="p">)</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">requested_slots</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_tasks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">job_name</span> <span class="o">=</span> <span class="s">&quot;LavaStorm[1-</span><span class="si">%d</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="n">num_tasks</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;-J&quot;</span><span class="p">)</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">project_name</span><span class="p">:</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;-P&quot;</span><span class="p">)</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">project_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">queue_name</span><span class="p">:</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;-q&quot;</span><span class="p">)</span>
+            <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">queue_name</span><span class="p">)</span>
+
+        <span class="n">job_command</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Submitting job: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_command</span><span class="p">))</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">job_command</span><span class="p">)</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">r&#39;Job &lt;(\d+)&gt; is submitted to.*&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+        <span class="n">job_id</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">jobs</span> <span class="o">=</span> <span class="p">[{</span>
+                    <span class="s">&#39;job_id&#39;</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s">&#39;array_index&#39;</span><span class="p">:</span> <span class="mi">0</span>
+                <span class="p">}]</span>
+
+        <span class="k">if</span> <span class="n">num_tasks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">jobs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">bjobs_command</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;bjobs&quot;</span><span class="p">,</span> <span class="s">&quot;-w&quot;</span><span class="p">,</span> <span class="s">&quot;-a&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">]</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">bjobs_command</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">r&#39;.*LavaStorm\[\d+\]&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                <span class="n">array_id</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">jobs</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;job_id&#39;</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s">&#39;array_index&#39;</span><span class="p">:</span> <span class="n">array_id</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">jobs</span>
+
+    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="n">bjobs_command</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;bjobs&quot;</span><span class="p">,</span> <span class="s">&quot;-w&quot;</span><span class="p">,</span> <span class="s">&quot;-a&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">]</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Looking for jobs with command: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bjobs_command</span><span class="p">))</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">bjobs_command</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Output from bjobs: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="n">jobs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Lines: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">lines</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c"># get array index</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">r&#39;.*LavaStorm\[\d+\]&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                <span class="n">array_index</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">array_index</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">jobs</span>
+
+    <span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">array_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">[</span><span class="si">%s</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">job_id</span>
+
+        <span class="n">bjobs_command</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;bjobs&quot;</span><span class="p">,</span> <span class="s">&quot;-w&quot;</span><span class="p">,</span> <span class="s">&quot;-a&quot;</span><span class="p">,</span> <span class="n">job</span><span class="p">]</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Looking for jobs with command: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bjobs_command</span><span class="p">))</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">bjobs_command</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Output from bjobs: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">entries</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&quot;PEND&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;PSUSP&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;RUN&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;USUSP&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;SSUSP&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;DONE&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;EXIT&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;UNKWN&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s">&quot;ZOMBI&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s">&quot;is_running&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                <span class="s">&quot;is_pending&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_suspended&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_completed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;is_failed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                <span class="s">&quot;was_killed&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">OpenLavaDirectJob</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">,</span> <span class="o">**</span><span class="n">states</span><span class="p">[</span><span class="n">state</span><span class="p">])</span>
+
+</div>
+<div class="viewcode-block" id="OpenLavaClusterAPIManager"><a class="viewcode-back" href="../schedulers.html#lavaStorm.OpenLavaClusterAPIManager">[docs]</a><span class="k">class</span> <span class="nc">OpenLavaClusterAPIManager</span><span class="p">(</span><span class="n">JobManager</span><span class="p">):</span>
+    <span class="n">scheduler_name</span> <span class="o">=</span> <span class="s">&quot;openlava_cluster_api&quot;</span>
+
+</div>
+<div class="viewcode-block" id="OpenLavaRemoteManager"><a class="viewcode-back" href="../schedulers.html#lavaStorm.OpenLavaRemoteManager">[docs]</a><span class="k">class</span> <span class="nc">OpenLavaRemoteManager</span><span class="p">(</span><span class="n">JobManager</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Job Manager for the OpenLavaWeb server.  Uses REST calls to manage jobs.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scheduler_name</span> <span class="o">=</span> <span class="s">&quot;openlava_web&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_argparse_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--url&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s">&quot;The URL of the openlava web server.&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--username&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s">&quot;The username of the account used when submitting jobs through openlava web.&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--password&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s">&quot;The password of the account used when submitting jobs through openlava web.&quot;</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Initializing Job Manager for OpenLava Web Interface&quot;</span><span class="p">)</span>
+        <span class="n">connection</span> <span class="o">=</span> <span class="n">OpenLavaConnection</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Logging in...&quot;</span><span class="p">)</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Initialized.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">connection</span>
+
+    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">num_tasks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;LavaStorm[1-</span><span class="si">%d</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="n">num_tasks</span>
+
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;project_name&#39;</span><span class="p">,</span> <span class="s">&#39;queue_name&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
+                <span class="k">del</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">f</span><span class="p">])</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">&#39;job_id&#39;</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="s">&#39;array_index&#39;</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">array_index</span><span class="p">}</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">Job</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Job</span><span class="o">.</span><span class="n">get_job_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="OpenLavaCAPIManager"><a class="viewcode-back" href="../schedulers.html#lavaStorm.OpenLavaCAPIManager">[docs]</a><span class="k">class</span> <span class="nc">OpenLavaCAPIManager</span><span class="p">(</span><span class="n">JobManager</span><span class="p">):</span>
+    <span class="n">scheduler_name</span> <span class="o">=</span> <span class="s">&quot;openlava_c_api&quot;</span>
+
+    <span class="k">def</span> <span class="nf">start_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">get_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">submit_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">class</span> <span class="nc">SimpleJob</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">array_index</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+</div>
 <div class="viewcode-block" id="BaseLoadProfile"><a class="viewcode-back" href="../profiles.html#lavaStorm.BaseLoadProfile">[docs]</a><span class="k">class</span> <span class="nc">BaseLoadProfile</span><span class="p">(</span><span class="n">Profile</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5</span>
@@ -618,6 +996,7 @@
 <span class="sd">    Use this profile when you want to maintain a current load on the cluster over a period of time.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sub_parser</span><span class="p">):</span>
         <span class="n">sub_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--base_load&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
@@ -663,6 +1042,7 @@
 <span class="sd">    Use this profile when you want to create a peak in demand.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">sub_parser</span><span class="p">):</span>
         <span class="n">sub_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--min_num_jobs_per_batch&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
@@ -678,7 +1058,7 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sum_submitted_batches</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SubmitBatch</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SubmitBatchProfile</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">create_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">start_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_start_time</span><span class="p">()</span>
@@ -743,13 +1123,6 @@
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--project&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;projects&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;append&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
                         <span class="n">help</span><span class="o">=</span><span class="s">&quot;Project to submit to, if multiple queues are specified, selects one at random.&quot;</span><span class="p">)</span>
 
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--url&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The URL of the openlava web server.&quot;</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--username&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The username of the account used when submitting jobs through openlava web.&quot;</span><span class="p">)</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--password&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The password of the account used when submitting jobs through openlava web.&quot;</span><span class="p">)</span>
-
     <span class="n">subparsers</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span><span class="n">help</span><span class="o">=</span><span class="s">&#39;sub-command help&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">cls</span> <span class="ow">in</span> <span class="n">Profile</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">sub_command_name</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">cls</span><span class="o">.</span><span class="n">sub_command_help</span><span class="p">)</span>
@@ -757,9 +1130,23 @@
         <span class="n">p</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">cls</span><span class="o">=</span><span class="n">cls</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">parser</span>
 
+
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&quot;[</span><span class="si">%(filename)s</span><span class="s">:</span><span class="si">%(lineno)s</span><span class="s"> - </span><span class="si">%(funcName)20s</span><span class="s">() ] </span><span class="si">%(message)s</span><span class="s">&quot;</span><span class="p">)</span>
     <span class="n">prs</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
+
+    <span class="c"># Discover which job manager interfaces are available, set these as</span>
+    <span class="c"># choices for the scheduler option.</span>
+    <span class="c">#</span>
+    <span class="c"># Add any options required by the job manager to the argument parser</span>
+    <span class="n">sched_choices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">JobManager</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">add_argparse_arguments</span><span class="p">(</span><span class="n">prs</span><span class="p">)</span>
+        <span class="n">sched_choices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">scheduler_name</span><span class="p">)</span>
+
+    <span class="n">prs</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--scheduler&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;scheduler&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">sched_choices</span><span class="p">,</span>
+                     <span class="n">help</span><span class="o">=</span><span class="s">&quot;Scheduler interface to use&quot;</span><span class="p">)</span>
+
     <span class="n">args</span> <span class="o">=</span> <span class="n">prs</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">office_hours</span><span class="p">:</span>
@@ -779,10 +1166,17 @@
     <span class="n">args</span><span class="o">.</span><span class="n">min_observation_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_observation_time</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">max_observation_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_observation_time</span><span class="p">)</span>
 
-    <span class="n">connection</span> <span class="o">=</span> <span class="n">OpenLavaConnection</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">connection</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+    <span class="c"># Initialize the job manager, if invalid choice then raise an exception</span>
+    <span class="n">manager</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">JobManager</span><span class="o">.</span><span class="n">__subclasses__</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">scheduler_name</span> <span class="o">==</span> <span class="n">args</span><span class="o">.</span><span class="n">scheduler</span><span class="p">:</span>
+            <span class="n">manager</span> <span class="o">=</span> <span class="n">c</span><span class="p">()</span>
+            <span class="n">manager</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">manager</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Manager undefined&quot;</span><span class="p">)</span>
+
     <span class="n">prof</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">cls</span><span class="p">()</span>
-    <span class="n">prof</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">connection</span>
+    <span class="n">prof</span><span class="o">.</span><span class="n">manager</span> <span class="o">=</span> <span class="n">manager</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 

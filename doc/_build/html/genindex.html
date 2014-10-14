@@ -31,10 +31,22 @@
     <script type="text/javascript" src="_static/bootstrap-3.1.0/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="LavaStorm 1.1 documentation" href="index.html" />
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-51064094-1', 'clusterfsck.io');
+  ga('send', 'pageview');
+
+</script>
+
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+
 
   </head>
   <body>
@@ -71,6 +83,9 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="profiles.html">Profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html">Scheduler Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html#openlava">OpenLava</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html#sun-grid-engine">Sun Grid Engine</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">LavaStorm Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="extension.html">Extending LavaStorm</a></li>
 </ul>
@@ -127,14 +142,18 @@
  | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#J"><strong>J</strong></a>
  | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
+ | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#W"><strong>W</strong></a>
  
 </div>
 <h2 id="Symbols">Symbols</h2>
@@ -148,6 +167,17 @@
       <dd><dl>
         
   <dt><a href="usage.html#cmdoption-smartStormRemote--base_load">smartStormRemote command line option</a>
+  </dt>
+
+      </dl></dd>
+      
+  <dt>
+    --bsub_command
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="usage.html#cmdoption-smartStormRemote--bsub_command">smartStormRemote command line option</a>
   </dt>
 
       </dl></dd>
@@ -309,6 +339,17 @@
       </dl></dd>
       
   <dt>
+    --scheduler
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="usage.html#cmdoption-smartStormRemote--scheduler">smartStormRemote command line option</a>
+  </dt>
+
+      </dl></dd>
+      
+  <dt>
     --url
   </dt>
 
@@ -340,6 +381,12 @@
   </dt>
 
   </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#SimpleJob.array_index">array_index (SimpleJob attribute)</a>
+  </dt>
+
+  </dl></td>
 </tr></table>
 
 <h2 id="B">B</h2>
@@ -363,6 +410,22 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="extension.html#lavaStorm.Profile.create_jobs">create_jobs() (lavaStorm.Profile method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#lavaStorm.DirectOpenLavaManager">DirectOpenLavaManager (class in lavaStorm)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#lavaStorm.DirectSGEManager">DirectSGEManager (class in lavaStorm)</a>
   </dt>
 
   </dl></td>
@@ -419,11 +482,55 @@
   <dt><a href="extension.html#lavaStorm.Profile.is_active">is_active() (lavaStorm.Profile method)</a>
   </dt>
 
+      
+  <dt><a href="schedulers.html#SimpleJob.is_completed">is_completed (SimpleJob attribute)</a>
+  </dt>
+
+      
+  <dt><a href="schedulers.html#SimpleJob.is_failed">is_failed (SimpleJob attribute)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#SimpleJob.is_pending">is_pending (SimpleJob attribute)</a>
+  </dt>
+
+      
+  <dt><a href="schedulers.html#SimpleJob.is_running">is_running (SimpleJob attribute)</a>
+  </dt>
+
+      
+  <dt><a href="schedulers.html#SimpleJob.is_suspended">is_suspended (SimpleJob attribute)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="J">J</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#SimpleJob.job_id">job_id (SimpleJob attribute)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#lavaStorm.JobManager">JobManager (class in lavaStorm)</a>
+  </dt>
+
   </dl></td>
 </tr></table>
 
 <h2 id="K">K</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#SimpleJob.kill">kill() (SimpleJob method)</a>
+  </dt>
+
+  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="extension.html#lavaStorm.Profile.kill_all_jobs">kill_all_jobs() (lavaStorm.Profile method)</a>
@@ -437,6 +544,30 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="usage.html#module-lavaStorm">lavaStorm (module)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#lavaStorm.OpenLavaCAPIManager">OpenLavaCAPIManager (class in lavaStorm)</a>
+  </dt>
+
+      
+  <dt><a href="schedulers.html#lavaStorm.OpenLavaClusterAPIManager">OpenLavaClusterAPIManager (class in lavaStorm)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#lavaStorm.OpenLavaDirectJob">OpenLavaDirectJob (class in lavaStorm)</a>
+  </dt>
+
+      
+  <dt><a href="schedulers.html#lavaStorm.OpenLavaRemoteManager">OpenLavaRemoteManager (class in lavaStorm)</a>
   </dt>
 
   </dl></td>
@@ -466,6 +597,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="schedulers.html#lavaStorm.SimpleJob">SimpleJob (class in lavaStorm)</a>
+  </dt>
+
+      
   <dt>
     smartStormRemote command line option
   </dt>
@@ -473,6 +608,10 @@
       <dd><dl>
         
   <dt><a href="usage.html#cmdoption-smartStormRemote--base_load">--base_load</a>
+  </dt>
+
+        
+  <dt><a href="usage.html#cmdoption-smartStormRemote--bsub_command">--bsub_command</a>
   </dt>
 
         
@@ -532,6 +671,10 @@
   </dt>
 
         
+  <dt><a href="usage.html#cmdoption-smartStormRemote--scheduler">--scheduler</a>
+  </dt>
+
+        
   <dt><a href="usage.html#cmdoption-smartStormRemote--url">--url</a>
   </dt>
 
@@ -570,6 +713,16 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="extension.html#lavaStorm.Profile.total_submitted_jobs">total_submitted_jobs (lavaStorm.Profile attribute)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="schedulers.html#SimpleJob.was_killed">was_killed (SimpleJob attribute)</a>
   </dt>
 
   </dl></td>

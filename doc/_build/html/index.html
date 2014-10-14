@@ -31,10 +31,22 @@
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="LavaStorm 1.1 documentation" href="#" />
     <link rel="next" title="Profiles" href="profiles.html" />
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-51064094-1', 'clusterfsck.io');
+  ga('send', 'pageview');
+
+</script>
+
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
+
 
   </head>
   <body>
@@ -71,6 +83,9 @@
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul>
 <li class="toctree-l1"><a class="reference internal" href="profiles.html">Profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html">Scheduler Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html#openlava">OpenLava</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html#sun-grid-engine">Sun Grid Engine</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">LavaStorm Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="extension.html">Extending LavaStorm</a></li>
 </ul>
@@ -133,12 +148,17 @@
       
   <div class="section" id="lavastorm">
 <h1>LavaStorm<a class="headerlink" href="#lavastorm" title="Permalink to this headline">¶</a></h1>
-<p>LavaStorm automates job submission into OpenLava (Or LSF) for testing and validation of the scheduling system. LavaStorm
-submits an arbitrary number of jobs, randomly selecting projects, queues, job size, and run time within predefined
+<p>LavaStorm automates job submission and resource consumption for testing and validation of the HPC scheduling systems.
+LavaStorm submits an arbitrary number of jobs, selecting projects, queues, job size, and run time within predefined
 limits set by the user.</p>
 <p>The submitted jobs execute and consume resources for the time specified before exiting. This is ideal when you want to
-check that the cluster is functioning normally before handing it over for end user access.</p>
-<p>Contents:</p>
+check that the cluster is functioning normally before handing it over for end user access or when you wish to evaluate
+changes to the scheduling environment.</p>
+<p>Various profiles are available to mimic common user behavior, and it is easy to create additional profiles, or modify
+the existing ones to match the desired profile.</p>
+<p>LavaStorm can talk to a number of schedulers including OpenLava, (Using the command line, C API, or through openlava web)
+and Sun Grid Engine.  Adding support for new schedulers is easy.
+Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="profiles.html">Profiles</a><ul>
@@ -146,7 +166,21 @@ check that the cluster is functioning normally before handing it over for end us
 <li class="toctree-l2"><a class="reference internal" href="profiles.html#submitbatch-profile">SubmitBatch Profile</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html">Scheduler Support</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schedulers.html#simplejob">SimpleJob</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schedulers.html#jobmanager">JobManager</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html#openlava">OpenLava</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schedulers.html#cli">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schedulers.html#cluster-api">Cluster API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schedulers.html#openlava-web">Openlava Web</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schedulers.html#c-api">C API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="schedulers.html#sun-grid-engine">Sun Grid Engine</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">LavaStorm Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#scheduler-specific-options">Scheduler Specific Options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#profile-specific-options">Profile Specific Options</a></li>
 </ul>
 </li>
