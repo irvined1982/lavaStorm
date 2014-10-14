@@ -601,7 +601,9 @@ class directOpenLavaManager(JobManager):
 
     def get_jobs(self, job_id):
         bjobs_command = ["bjobs", "-w", "-a", "%s" % job_id]
+        logging.debug("Looking for jobs with command: %s" % " ".join(bjobs_command))
         output = subprocess.check_output(bjobs_command)
+        logging.debug("Output from bjobs: %s" % output)
         lines = output.splitlines()
         jobs = []
         for line in lines:
@@ -612,7 +614,6 @@ class directOpenLavaManager(JobManager):
             else:
                 array_index = 0
             jobs.append(self.get_job(job_id, array_index))
-
         return jobs
 
     def get_job(self, job_id, array_index):
@@ -622,7 +623,9 @@ class directOpenLavaManager(JobManager):
             job = "%s" % job_id
 
         bjobs_command = ["bjobs", "-w", "-a", job]
+        logging.debug("Looking for jobs with command: %s" % " ".join(bjobs_command))
         output = subprocess.check_output(bjobs_command)
+        logging.debug("Output from bjobs: %s" % output)
         entries = output.split()
         state = entries[2]
         states={
