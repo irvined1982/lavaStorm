@@ -83,7 +83,6 @@ The queue to submit jobs, if specified multiple times, then a random queue from 
 
 If no queues are specified, then the default queue will be used.
 
-
 .. option:: --min_tasks_per_job
 
 The minimum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and
@@ -93,6 +92,23 @@ maximum values inclusive.  Default: 1.
 
 The maximum number of tasks per job.  The actual number of tasks in the job will be a random number between the min and
 maximum values inclusive.  Default  1.
+
+.. option:: --scheduler
+
+The Scheduler interface to use, can be one of: sge_cli,openlava_cli,openlava_cluster_api,openlava_web,openlava_c_api
+
+Scheduler Specific Options
+--------------------------
+
+Openlava Command Line Interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. option:: --bsub_command
+
+The path to the bsub command, additional arguments can also be passed.
+
+Openlava Web
+^^^^^^^^^^^^
 
 .. option:: --url
 
@@ -158,8 +174,104 @@ import subprocess
 
 
 
+class SimpleJob(object):
+    """
+    SimpleJob is a very simple job implementation providing just enough information for LavaStorm to make decisions, and
+    no more.  Job Managers are free to either subclass SimpleJob, or use a different implementation entirely however
+    the following methods and attributes MUST be implemented.
+
+    At least one of the following attributes must be true.  All must be defined.
+
+    .. py:attribute:: is_running
+
+        True if the job is executing on the cluster.
+
+    .. py:attribute:: is_pending
+
+        True if the job is pending execution
+
+    .. py:attribute:: is_completed
+
+        True if and only if the job has completed successfully.
+
+    .. py:attribute:: is_failed
+
+        True if and only if the job failed
+
+    .. py:attribute:: is_suspended
+
+        True if the job is currently suspended
+
+    .. py:attribute:: was_killed
+
+        True if the job was killed by the end user or administrator
+
+    .. py:attribute:: job_id
+
+        The numerical Job ID
+
+    .. py:attribute:: array_index
+
+        The numerical array index, zero if not part of an array,
+
+    .. py:method:: kill()
+
+        Kill the job using the job scheduler.
+
+    """
+    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False, is_suspended=False, was_killed=False):
+        self.is_running = is_running
+        self.is_pending = is_pending
+        self.is_completed = is_completed
+        self.is_failed = is_failed
+        self.is_suspended = is_suspended
+        self.was_killed = was_killed
+        self.job_id = int(job_id)
+        self.array_index = int(array_index)
+    def kill(self):
+        raise NotImplementedError
+
+
+
+class JobManager(object):
+    """
+    Job Managers are responsible for submitting, monitoring the state of, and killing jobs.
+    """
+    @classmethod
+    def add_argparse_arguments(cls, parser):
+        """
+        Adds any additional command line arguments needed by the job manager.
+        """
+        pass
+
+    def initialize(self, args):
+        """
+        Called when the job manager is selected by the user.
+        """
+        self.args = args
+
+
+    def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
+        """
+        Submits jobs into the job scheduler, returns a list of submitted jobs as an array of dictionaries,
+        each element containing the job_id and array_index.
+        """
+        raise NotImplementedError
+
+    def get_jobs(self, job_id):
+        """
+        Gets all jobs for a specified job id. Returns a list of objects that implement SimpleJob
+        """
+        pass
+
+    def get_job(self, job_id, array_index):
+        """
+        Gets a single job specified by the job id and array index.  Returns an object that implements SimpleJob
+        """
+        pass
+
+
 class Profile(object):
-    connection = None  # OpenlavaWeb Connection
     sub_command_name = "Not Defined"
     sub_command_help = "Not Defined"
 
@@ -487,62 +599,18 @@ class Profile(object):
                 self.submit_queue.append(job)
 
 
-class SimpleJob(object):
-    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False, is_suspended=False, was_killed=False):
-        self.is_running = is_running
-        self.is_pending = is_pending
-        self.is_completed = is_completed
-        self.is_failed = is_failed
-        self.is_suspended = is_suspended
-        self.was_killed = was_killed
-        self.job_id = int(job_id)
-        self.array_index = int(array_index)
-    def kill(self):
-        pass
-
-
-class JobManager(object):
-    """
-    Job Managers are responsible for submitting, monitoring the state of, and killing jobs.
-    """
-    @classmethod
-    def add_argparse_arguments(cls, parser):
-        """
-        Adds any additional command line arguments needed by the job manager
-        """
-        pass
-
-    def initialize(self, args):
-        """
-        Called when the job manager is selected by the user
-        """
-        self.args = args
-
-
-    def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
-        """
-        Submits jobs into the job scheduler, returns a list of submitted jobs
-        """
-        raise NotImplementedError
-
-    def get_jobs(self, job_id):
-        """
-        Gets all jobs for a specified job id
-        """
-        pass
-
-    def get_job(self, job_id, array_index):
-        """
-        Gets a single job specified by the job id and array index
-        """
-        pass
-
 
 class directSGEManager(JobManager):
+    """
+    Job Manager for Sun Grid Engine using the Command Line Interface.
+    """
     scheduler_name = "sge_cli"
 
 
 class OpenLavaDirectJob(SimpleJob):
+    """
+    SimpleJob Implementation for
+    """
     def kill(self):
         cmd = ["bkill"]
         if self.array_index is not 0:
@@ -757,8 +825,6 @@ class OpenLavaRemoteManager(JobManager):
 
     def get_job(self, job_id, array_index):
         return Job(self.connection, job_id, array_index)
-
-
 
 class OpenLavaCAPIManager(JobManager):
     scheduler_name="openlava_c_api"

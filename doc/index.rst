@@ -13,12 +13,15 @@ limits set by the user.
 The submitted jobs execute and consume resources for the time specified before exiting. This is ideal when you want to
 check that the cluster is functioning normally before handing it over for end user access.
 
+LavaStorm can talk to a number of schedulers including OpenLava, (Using the command line, C API, or through openlava web)
+and Sun Grid Engine.  Adding support for new schedulers is easy.
 Contents:
 
 .. toctree::
     :maxdepth: 2
 
     profiles
+    schedulers
     usage
     extension
 
