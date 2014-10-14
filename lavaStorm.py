@@ -630,7 +630,7 @@ class directOpenLavaManager(JobManager):
         logging.debug("Output from bjobs: %s" % output)
         output=output.splitlines()
         output.pop(0)
-        entries = output.split()
+        entries = output.pop(0).split()
         state = entries[2]
         states={
             "PEND":{
