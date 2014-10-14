@@ -162,7 +162,6 @@ The number of iterations to do before exiting.
 
 """
 
-from olwclient import OpenLavaConnection, Job
 from random import randint, choice
 import time
 import sys
@@ -172,6 +171,7 @@ import argparse
 import re
 import subprocess
 
+from olwclient import OpenLavaConnection, Job
 
 
 class SimpleJob(object):
@@ -219,7 +219,9 @@ class SimpleJob(object):
         Kill the job using the job scheduler.
 
     """
-    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False, is_suspended=False, was_killed=False):
+
+    def __init__(self, job_id, array_index, is_running=False, is_pending=False, is_completed=False, is_failed=False,
+                 is_suspended=False, was_killed=False):
         self.is_running = is_running
         self.is_pending = is_pending
         self.is_completed = is_completed
@@ -228,15 +230,18 @@ class SimpleJob(object):
         self.was_killed = was_killed
         self.job_id = int(job_id)
         self.array_index = int(array_index)
+
     def kill(self):
         raise NotImplementedError
-
 
 
 class JobManager(object):
     """
     Job Managers are responsible for submitting, monitoring the state of, and killing jobs.
     """
+    def __init__(self):
+        self.args = None
+
     @classmethod
     def add_argparse_arguments(cls, parser):
         """
@@ -244,12 +249,11 @@ class JobManager(object):
         """
         pass
 
-    def initialize(self, args):
+    def initialize(self, parsed_args):
         """
         Called when the job manager is selected by the user.
         """
-        self.args = args
-
+        self.args = parsed_args
 
     def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
         """
@@ -276,6 +280,7 @@ class Profile(object):
     sub_command_help = "Not Defined"
 
     def __init__(self):
+        self.manager = None
         self.submit_queue = []
         self.active_jobs = []
 
@@ -400,8 +405,6 @@ class Profile(object):
         """
         return self.manager.get_jobs(job_id)
 
-
-
     def get_num_tasks(self):
         """
         Gets the number of tasks for the job.
@@ -415,8 +418,6 @@ class Profile(object):
         """
         Finds all jobs that are active, and tells the scheduler to kill them.
 
-        :param job_id: Job ID of the job
-        :param array_index: Array index of the job
         :return: None
 
         """
@@ -569,11 +570,11 @@ class Profile(object):
         """
         try:
             while True:
-                    self.process_running_jobs()
-                    if self.is_active():
-                        self.create_jobs()
-                    self.start_jobs()
-                    time.sleep(10)
+                self.process_running_jobs()
+                if self.is_active():
+                    self.create_jobs()
+                self.start_jobs()
+                time.sleep(10)
         except KeyboardInterrupt:
             logging.info("Terminating. Killing all active jobs.")
             self.kill_all_jobs()
@@ -599,8 +600,7 @@ class Profile(object):
                 self.submit_queue.append(job)
 
 
-
-class directSGEManager(JobManager):
+class DirectSGEManager(JobManager):
     """
     Job Manager for Sun Grid Engine using the Command Line Interface.
     """
@@ -611,6 +611,7 @@ class OpenLavaDirectJob(SimpleJob):
     """
     SimpleJob Implementation for
     """
+
     def kill(self):
         cmd = ["bkill"]
         if self.array_index is not 0:
@@ -620,7 +621,7 @@ class OpenLavaDirectJob(SimpleJob):
         subprocess.check_output(cmd)
 
 
-class directOpenLavaManager(JobManager):
+class DirectOpenLavaManager(JobManager):
     scheduler_name = 'openlava_cli'
 
     @classmethod
@@ -629,7 +630,7 @@ class directOpenLavaManager(JobManager):
                             help="The path to the bsub command, additional arguments can also be passed")
 
     def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
-        job_command=self.args.bsub_command.split()
+        job_command = self.args.bsub_command.split()
 
         if requested_slots:
             job_command.append("-n")
@@ -651,18 +652,18 @@ class directOpenLavaManager(JobManager):
         job_command.append(command)
         logging.debug("Submitting job: %s" % " ".join(job_command))
         output = subprocess.check_output(job_command)
-        match = re.search( r'Job <(\d+)> is submitted to.*', output)
-        job_id=match.group(1)
+        match = re.search(r'Job <(\d+)> is submitted to.*', output)
+        job_id = match.group(1)
         jobs = [{
-            'job_id': job_id, 'array_index': 0
-        }]
+                    'job_id': job_id, 'array_index': 0
+                }]
 
         if num_tasks > 1:
             jobs = []
-            bjobs_command=["bjobs", "-w", "-a", "%s" % job_id]
+            bjobs_command = ["bjobs", "-w", "-a", "%s" % job_id]
             output = subprocess.check_output(bjobs_command)
             for line in output.splitlines():
-                match = re.search( r'.*LavaStorm\[\d+\]', line)
+                match = re.search(r'.*LavaStorm\[\d+\]', line)
                 array_id = match.group(1)
                 jobs.append({'job_id': job_id, 'array_index': array_id})
 
@@ -697,81 +698,81 @@ class directOpenLavaManager(JobManager):
         logging.debug("Looking for jobs with command: %s" % " ".join(bjobs_command))
         output = subprocess.check_output(bjobs_command)
         logging.debug("Output from bjobs: %s" % output)
-        output=output.splitlines()
+        output = output.splitlines()
         output.pop(0)
         entries = output.pop(0).split()
         state = entries[2]
-        states={
-            "PEND":{
-                "is_running":False,
-                "is_pending":True,
+        states = {
+            "PEND": {
+                "is_running": False,
+                "is_pending": True,
                 "is_suspended": False,
-                "is_completed":False,
-                "is_failed":False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "PSUSP":{
-                "is_running":False,
+            "PSUSP": {
+                "is_running": False,
                 "is_pending": False,
                 "is_suspended": True,
-                "is_completed":False,
-                "is_failed":False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "RUN":{
-                "is_running":True,
-                "is_pending":False,
+            "RUN": {
+                "is_running": True,
+                "is_pending": False,
                 "is_suspended": False,
-                "is_completed":False,
-                "is_failed":False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "USUSP":{
-                "is_running":False,
-                "is_pending":False,
+            "USUSP": {
+                "is_running": False,
+                "is_pending": False,
                 "is_suspended": True,
-                "is_completed":False,
-                "is_failed":False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "SSUSP":{
-                "is_running":False,
+            "SSUSP": {
+                "is_running": False,
                 "is_suspended": True,
-                "is_pending":False,
-                "is_completed":False,
-                "is_failed":False,
+                "is_pending": False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "DONE":{
-                "is_running":False,
-                "is_pending":False,
+            "DONE": {
+                "is_running": False,
+                "is_pending": False,
                 "is_suspended": False,
-                "is_completed":True,
-                "is_failed":False,
+                "is_completed": True,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "EXIT":{
-                "is_running":False,
-                "is_pending":False,
+            "EXIT": {
+                "is_running": False,
+                "is_pending": False,
                 "is_suspended": False,
-                "is_completed":False,
-                "is_failed":True,
+                "is_completed": False,
+                "is_failed": True,
                 "was_killed": False,
             },
-            "UNKWN":{
-                "is_running":True,
-                "is_pending":False,
+            "UNKWN": {
+                "is_running": True,
+                "is_pending": False,
                 "is_suspended": False,
-                "is_completed":False,
-                "is_failed":False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
-            "ZOMBI":{
-                "is_running":True,
-                "is_pending":False,
+            "ZOMBI": {
+                "is_running": True,
+                "is_pending": False,
                 "is_suspended": False,
-                "is_completed":False,
-                "is_failed":False,
+                "is_completed": False,
+                "is_failed": False,
                 "was_killed": False,
             },
         }
@@ -783,22 +784,21 @@ class OpenLavaClusterAPIManager(JobManager):
     scheduler_name = "openlava_cluster_api"
 
 
-
 class OpenLavaRemoteManager(JobManager):
     """
     Job Manager for the OpenLavaWeb server.  Uses REST calls to manage jobs.
 
     """
-    scheduler_name="openlava_web"
+    scheduler_name = "openlava_web"
 
     @classmethod
     def add_argparse_arguments(cls, parser):
         parser.add_argument("--url", type=str, default=None,
-                        help="The URL of the openlava web server.")
+                            help="The URL of the openlava web server.")
         parser.add_argument("--username", type=str, default=None,
-                        help="The username of the account used when submitting jobs through openlava web.")
+                            help="The username of the account used when submitting jobs through openlava web.")
         parser.add_argument("--password", type=str, default=None,
-                        help="The password of the account used when submitting jobs through openlava web.")
+                            help="The password of the account used when submitting jobs through openlava web.")
 
 
     def initialize(self, args):
@@ -826,8 +826,10 @@ class OpenLavaRemoteManager(JobManager):
     def get_job(self, job_id, array_index):
         return Job(self.connection, job_id, array_index)
 
+
 class OpenLavaCAPIManager(JobManager):
-    scheduler_name="openlava_c_api"
+    scheduler_name = "openlava_c_api"
+
     def start_job(self):
         pass
 
@@ -848,9 +850,6 @@ class OpenLavaCAPIManager(JobManager):
             pass
 
 
-
-
-
 class BaseLoadProfile(Profile, object):
     """
     The baseload profile maintains a steady run of jobs for a specific user.  If the baseload is 5, then a total of 5
@@ -860,6 +859,7 @@ class BaseLoadProfile(Profile, object):
     Use this profile when you want to maintain a current load on the cluster over a period of time.
 
     """
+
     @classmethod
     def add_arguments(cls, sub_parser):
         sub_parser.add_argument("--base_load", type=int, default=5,
@@ -905,6 +905,7 @@ class SubmitBatchProfile(Profile, object):
     Use this profile when you want to create a peak in demand.
 
     """
+
     @classmethod
     def add_arguments(cls, sub_parser):
         sub_parser.add_argument("--min_num_jobs_per_batch", type=int, default=5,
@@ -985,13 +986,13 @@ def get_parser():
     parser.add_argument("--project", dest="projects", type=str, action="append", default=[],
                         help="Project to submit to, if multiple queues are specified, selects one at random.")
 
-
     subparsers = parser.add_subparsers(help='sub-command help')
     for cls in Profile.__subclasses__():
         p = subparsers.add_parser(cls.sub_command_name, help=cls.sub_command_help)
         cls.add_arguments(p)
         p.set_defaults(cls=cls)
     return parser
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s")
@@ -1006,7 +1007,8 @@ if __name__ == "__main__":
         c.add_argparse_arguments(prs)
         sched_choices.append(c.scheduler_name)
 
-    prs.add_argument("--scheduler", type=str, dest="scheduler",choices=sched_choices, help="Scheduler interface to use")
+    prs.add_argument("--scheduler", type=str, dest="scheduler", choices=sched_choices,
+                     help="Scheduler interface to use")
 
     args = prs.parse_args()
     try:
