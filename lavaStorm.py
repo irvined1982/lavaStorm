@@ -494,8 +494,8 @@ class SimpleJob(object):
         self.is_completed = is_completed
         self.is_failed = is_failed
         self.was_killed = was_killed
-        self.job_id = job_id
-        self.array_index = array_index
+        self.job_id = int(job_id)
+        self.array_index = int(array_index)
     def kill(self):
         pass
 
