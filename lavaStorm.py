@@ -606,6 +606,7 @@ class directOpenLavaManager(JobManager):
         logging.debug("Output from bjobs: %s" % output)
         lines = output.splitlines()
         jobs = []
+        lines.pop(0)
         for line in lines:
             if len(lines) > 1:
                 # get array index
@@ -626,6 +627,8 @@ class directOpenLavaManager(JobManager):
         logging.debug("Looking for jobs with command: %s" % " ".join(bjobs_command))
         output = subprocess.check_output(bjobs_command)
         logging.debug("Output from bjobs: %s" % output)
+        output=output.splitlines()
+        output.pop(0)
         entries = output.split()
         state = entries[2]
         states={
