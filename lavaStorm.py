@@ -607,6 +607,7 @@ class directOpenLavaManager(JobManager):
         lines = output.splitlines()
         jobs = []
         lines.pop(0)
+        logging.debug("Lines: %s" % lines)
         for line in lines:
             if len(lines) > 1:
                 # get array index
