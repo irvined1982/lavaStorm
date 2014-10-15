@@ -608,7 +608,7 @@ class DirectSGEManager(JobManager):
 
     @classmethod
     def add_argparse_arguments(cls, parser):
-        parser.add_argument("--qsub_command", type=str, default="bsub",
+        parser.add_argument("--qsub_command", type=str, default="qsub",
                             help="The path to the bsub command, additional arguments can also be passed")
         parser.add_argument("--qsub_pe_type", type=str, default="orte",
                             help="The parallel environment to use when launching parallel jobs")
