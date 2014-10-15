@@ -637,9 +637,9 @@ class DirectSGEManager(JobManager):
             job_command.append("-q")
             job_command.append(queue_name)
 
-        job_command.append(command)
+
         logging.debug("Submitting job: %s" % " ".join(job_command))
-        output = subprocess.check_output(job_command)
+        output = subprocess.check_output(job_command, input=b"%s" % command)
         if num_tasks > 1:
             match = re.search(r'Your job-array (\d+).* has been submitted', output)
         else:
