@@ -170,7 +170,7 @@ import logging
 import argparse
 import re
 import subprocess
-
+from xml.dom import minidom
 from olwclient import OpenLavaConnection, Job
 
 
@@ -606,10 +606,158 @@ class DirectSGEManager(JobManager):
     """
     scheduler_name = "sge_cli"
 
+    @classmethod
+    def add_argparse_arguments(cls, parser):
+        parser.add_argument("--qsub_command", type=str, default="bsub",
+                            help="The path to the bsub command, additional arguments can also be passed")
+        parser.add_argument("--qsub_pe_type", type=str, default="orte",
+                            help="The parallel environment to use when launching parallel jobs")
+
+    def __init__(self):
+        super(DirectSGEManager, self).__init__()
+        self.job_sizes = {}
+
+    def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
+        job_command = self.args.qsub_command.split()
+
+        if requested_slots:
+            job_command.append("-pe")
+            job_command.append(self.args.qsub_pe_type)
+            job_command.append("%s" % requested_slots)
+
+        if num_tasks > 1:
+            job_command.append("-t")
+            job_command.append("1-%d" % num_tasks)
+
+        if project_name:
+            job_command.append("-P")
+            job_command.append(project_name)
+
+        if queue_name:
+            job_command.append("-q")
+            job_command.append(queue_name)
+
+        job_command.append(command)
+        logging.debug("Submitting job: %s" % " ".join(job_command))
+        output = subprocess.check_output(job_command)
+        if num_tasks > 1:
+            match = re.search(r'Your job-array (\d+).* has been submitted', output)
+        else:
+            match = re.search(r'Your job (\d+).* has been submitted', output)
+
+        job_id = match.group(1)
+
+        if num_tasks > 1:
+            jobs = [{'job_id': job_id, 'array_index': a_id} for a_id in range(1, num_tasks+1)]
+            self.job_sizes[job_id] = num_tasks
+        else:
+            jobs = [{'job_id': job_id, 'array_index': 0}]
+            self.job_sizes[job_id] = 0
+
+        return jobs
+
+    def get_jobs(self, job_id):
+        jobs = []
+        for i in range(1, self.job_sizes[job_id]+1):
+            jobs.append(self.get_job(job_id, i))
+        if len(jobs) == 0:
+            jobs.append(self.get_job(job_id, 0))
+        return jobs
+
+    @staticmethod
+    def _get_from_qhist(job_id, array_index):
+
+        # Try to get job from accounting (ie, job is done)
+        try:
+            is_completed = False
+            is_failed = False
+            was_killed = False
+            cmd = ["qacct", "-j", "%d" % job_id, "-t", "%d" % array_index]
+            logging.debug("Looking for jobs with command: %s" % " ".join(cmd))
+            output = subprocess.check_output(cmd)
+            logging.debug("Output from qstat: %s" % output)
+            for line in output.splitlines():
+                components = line.split()
+                if components[0] == "exit_status":
+                    if int(components[1]) == 0:
+                        is_completed = True
+                    else:
+                        is_failed = True
+                if components[0] == "failed":
+                    if components[1] != 0:
+                        is_failed = True
+            return SGEDirectJob(job_id, array_index,
+                                is_completed=is_completed,
+                                is_failed=is_failed,
+                                was_killed=was_killed)
+        except subprocess.CalledProcessError:
+            return None
+
+    @staticmethod
+    def _get_from_qstat(job_id, array_index):
+        try:
+            cmd = ["qstat", "-g", "d", "-xml"]
+
+            logging.debug("Looking for jobs with command: %s" % " ".join(cmd))
+            output = subprocess.check_output(cmd)
+            logging.debug("Output from qstat: %s" % output)
+            xmldoc = minidom.parseString(output)
+            jobs = xmldoc.getElementsByTagName('job_list')
+            for j in jobs:
+                e_job_id = j.getElementsByTagName('JB_job_number')[0].text
+                if job_id != e_job_id:
+                    continue
+                if array_index != 0 and j.getElementsByTagName('tasks').text != array_index:
+                    continue
+
+                state = j.getElementsByTagName('state').text
+                if state == "qw":
+                    return SGEDirectJob(job_id, array_index, is_pending=True)
+                if state == "r":
+                    return SGEDirectJob(job_id, array_index, is_running=True)
+
+        except subprocess.CalledProcessError:
+            return None
+
+    def get_job(self, job_id, array_index):
+        if array_index is None:
+            array_index = 0
+
+        job = self._get_from_qhist(job_id, array_index)
+        if job:
+            return job
+
+        job = self._get_from_qstat(job_id, array_index)
+        if job:
+            return job
+
+        # not in qstat, but not in qhist, try for 10 more seconds to get the job.
+        for i in range(10):
+            job = self._get_from_qhist(job_id, array_index)
+            if job:
+                return job
+            time.sleep(1)
+
+        return SGEDirectJob(job_id, array_index, was_killed=True, is_failed=True)
+
+
+class SGEDirectJob(SimpleJob):
+    """
+    SimpleJob Implementation for Sun Grid Engine
+    """
+
+    def kill(self):
+        cmd = list("qdel")
+        cmd.append("%s" % self.job_id)
+        if self.array_index is not 0:
+            cmd.append("-t")
+            cmd.append("%s" % self.array_index)
+        subprocess.check_output(cmd)
+
 
 class OpenLavaDirectJob(SimpleJob):
     """
-    SimpleJob Implementation for
+    SimpleJob Implementation for Open Lava
     """
 
     def kill(self):
@@ -654,9 +802,7 @@ class DirectOpenLavaManager(JobManager):
         output = subprocess.check_output(job_command)
         match = re.search(r'Job <(\d+)> is submitted to.*', output)
         job_id = match.group(1)
-        jobs = [{
-                    'job_id': job_id, 'array_index': 0
-                }]
+        jobs = [{'job_id': job_id, 'array_index': 0}]
 
         if num_tasks > 1:
             jobs = []
