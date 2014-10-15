@@ -255,12 +255,12 @@ class JobManager(object):
         """
         self.args = parsed_args
 
-    def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
-        """
-        Submits jobs into the job scheduler, returns a list of submitted jobs as an array of dictionaries,
-        each element containing the job_id and array_index.
-        """
-        raise NotImplementedError
+    # def start_job(self, num_tasks, requested_slots=None, project_name=None, command=None, queue_name=None):
+    #     """
+    #     Submits jobs into the job scheduler, returns a list of submitted jobs as an array of dictionaries,
+    #     each element containing the job_id and array_index.
+    #     """
+    #     raise NotImplementedError
 
     def get_jobs(self, job_id):
         """
