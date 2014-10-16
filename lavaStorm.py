@@ -709,6 +709,7 @@ class DirectSGEManager(JobManager):
             jobs = xmldoc.getElementsByTagName('job_list')
             for j in jobs:
                 e_job_id = j.getElementsByTagName('JB_job_number')[0].nodeValue
+                logging.debug("Job id returned is: %s" % e_job_id)
                 if job_id != e_job_id:
                     continue
                 if array_index != 0 and j.getElementsByTagName('tasks').nodeValue != array_index:
