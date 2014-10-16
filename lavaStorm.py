@@ -676,7 +676,7 @@ class DirectSGEManager(JobManager):
             is_completed = False
             is_failed = False
             was_killed = False
-            cmd = ["qacct", "-j", "%d" % job_id, "-t", "%s" % array_index]
+            cmd = ["qacct", "-j", "%s" % job_id, "-t", "%s" % array_index]
             logging.debug("Looking for jobs with command: %s" % " ".join(cmd))
             output = subprocess.check_output(cmd)
             logging.debug("Output from qstat: %s" % output)
@@ -726,7 +726,7 @@ class DirectSGEManager(JobManager):
     def get_job(self, job_id, array_index):
         job_id=int(job_id)
         array_index=int(array_index)
-        
+
         if array_index is None:
             array_index = 0
 
