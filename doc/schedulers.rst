@@ -12,16 +12,6 @@ SimpleJob - a very simple class that represents an active job, implements a meth
 attributes that denote the status of the job and its IDs; and JobManager - the actual interface to the scheduler that
 provides methods to retrieve a job or jobs, and submit new jobs into the batch scheduling system.
 
-SimpleJob
----------
-
-.. autoclass:: lavaStorm.SimpleJob
-
-JobManager
-----------
-
-.. autoclass:: lavaStorm.JobManager
-
 OpenLava
 ========
 

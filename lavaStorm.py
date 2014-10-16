@@ -741,7 +741,7 @@ class DirectSGEManager(JobManager):
             return job
 
         # not in qstat, but not in qhist, try for 10 more seconds to get the job.
-        for i in range(10):
+        for i in range(30):
             job = self._get_from_qhist(job_id, array_index)
             if job:
                 return job

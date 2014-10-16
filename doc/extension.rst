@@ -1,10 +1,13 @@
-Extending LavaStorm
-===================
+LavaStorm can be extended easily by subclassing the Profile class to add new profiles, or by subclassing the
+JobManager class to add support for new schedulers.
 
-LavaStorm can be extended easily by subclassing the Profile class.  Once you create your own class, set the class
-attribute sub_command_name and sub_command_help.  The former defines the name of the profile argument, and should be
-a single word, short, and describe the profile.  The second is a verbose help field that explains something about that
-profile, this will be displayed when the LavaStorm is called with the --help argument.
+Adding Profiles
+===============
+
+Once you create your own class, set the class attribute sub_command_name and sub_command_help.  The former defines the
+name of the profile argument, and should be a single word, short, and describe the profile.  The second is a verbose
+help field that explains something about that profile, this will be displayed when the LavaStorm is called with
+the --help argument.
 
 Generally, you only need to re-implement one other method: create_jobs().  This method must decide how many jobs are
 needed and when they should be submitted to the scheduler.  Once put in the submit_queue, all other operations are
@@ -31,7 +34,7 @@ on the range supplied by the user.::
 
     self.submit_queue.append(job_data)
 
-Process API
+Profile API
 -----------
 
 Class Attributes
@@ -128,3 +131,18 @@ need to be modified.
 .. automethod:: lavaStorm.Profile.start_jobs
 
 .. automethod:: lavaStorm.Profile.kill_all_jobs
+
+
+
+Adding Schedulers
+=================
+
+SimpleJob
+---------
+
+.. autoclass:: lavaStorm.SimpleJob
+
+JobManager
+----------
+
+.. autoclass:: lavaStorm.JobManager
