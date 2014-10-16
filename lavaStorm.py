@@ -708,13 +708,13 @@ class DirectSGEManager(JobManager):
             xmldoc = minidom.parseString(output)
             jobs = xmldoc.getElementsByTagName('job_list')
             for j in jobs:
-                e_job_id = j.getElementsByTagName('JB_job_number')[0].text
+                e_job_id = j.getElementsByTagName('JB_job_number')[0].nodeValue
                 if job_id != e_job_id:
                     continue
-                if array_index != 0 and j.getElementsByTagName('tasks').text != array_index:
+                if array_index != 0 and j.getElementsByTagName('tasks').nodeValue != array_index:
                     continue
 
-                state = j.getElementsByTagName('state').text
+                state = j.getElementsByTagName('state').nodeValue
                 if state == "qw":
                     return SGEDirectJob(job_id, array_index, is_pending=True)
                 if state == "r":
