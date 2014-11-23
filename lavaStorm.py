@@ -172,7 +172,7 @@ import re
 import subprocess
 from xml.dom import minidom
 from olwclient import OpenLavaConnection, Job
-
+from openlavaweb.cluster.openlavacluster import Job as CJob
 
 class SimpleJob(object):
     """
@@ -938,6 +938,22 @@ class DirectOpenLavaManager(JobManager):
 class OpenLavaClusterAPIManager(JobManager):
     scheduler_name = "openlava_cluster_api"
 
+    def start_job(self, num_tasks, **kwargs):
+        if num_tasks > 1:
+            kwargs['job_name'] = "LavaStorm[1-%d]" % num_tasks
+
+        for f in ['project_name', 'queue_name']:
+            if f in kwargs and not kwargs[f]:
+                del (kwargs[f])
+        return [
+            {'job_id': j.job_id, 'array_index': j.array_index} for j in CJob.submit(**kwargs)
+        ]
+
+    def get_jobs(self, job_id):
+        return CJob.get_job_list(job_id, -1)
+
+    def get_job(self, job_id, array_index):
+        return CJob(job_id, array_index)
 
 class OpenLavaRemoteManager(JobManager):
     """
